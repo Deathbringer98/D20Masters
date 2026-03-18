@@ -1,6 +1,8 @@
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 
 export default function D20DiceRoller() {
+  const [showLegal, setShowLegal] = useState(false);
+
   const colorOptions = [
     { name: "Crimson", value: "#dc2626" },
     { name: "Emerald", value: "#16a34a" },
@@ -26,8 +28,6 @@ export default function D20DiceRoller() {
   const [roll, setRoll] = useState(20);
   const [rolling, setRolling] = useState(false);
 
-  const glow = useMemo(() => `${selectedColor}55`, [selectedColor]);
-
   function randomD20() {
     return Math.floor(Math.random() * 20) + 1;
   }
@@ -41,11 +41,75 @@ export default function D20DiceRoller() {
     }, 800);
   }
 
+  if (showLegal) {
+    return (
+      <div>
+        <LegalPages />
+        <div style={{ position: "fixed", bottom: 20, right: 20, zIndex: 100 }}>
+          <button
+            onClick={() => setShowLegal(false)}
+            className="nav-btn"
+            style={{ padding: "10px 20px" }}
+          >
+            Back to Roller
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div style={{ backgroundImage: `url(${selectedBackground.image})`, minHeight: "100vh", color: "white" }}>
-      <h1>D20Masters</h1>
-      <h2>{roll}</h2>
-      <button onClick={handleRoll}>Roll</button>
+    <div
+      className="dice-roller"
+      style={{ backgroundImage: `url(${selectedBackground.image})` }}
+    >
+      <div className="header">
+        <h1 className="title">D20Masters</h1>
+        <div className="nav-buttons">
+          <button className="nav-btn" onClick={() => setShowLegal(true)}>
+            Legal
+          </button>
+        </div>
+      </div>
+
+      <div className="dice-container">
+        <div className={`dice-display ${rolling ? "rolling" : ""}`}>{roll}</div>
+        <button className="roll-button" onClick={handleRoll} disabled={rolling}>
+          {rolling ? "Rolling..." : "Roll D20"}
+        </button>
+      </div>
+
+      <div className="customization">
+        <div className="customization-row">
+          <label className="customization-label">Dice Color</label>
+          <div className="color-options">
+            {colorOptions.map((option) => (
+              <button
+                key={option.value}
+                className={`color-button ${selectedColor === option.value ? "active" : ""}`}
+                style={{ backgroundColor: option.value }}
+                onClick={() => setSelectedColor(option.value)}
+                title={option.name}
+              />
+            ))}
+          </div>
+        </div>
+
+        <div className="customization-row">
+          <label className="customization-label">Background</label>
+          <div className="background-select">
+            {backgroundOptions.map((option) => (
+              <button
+                key={option.name}
+                className={`bg-option ${selectedBackground.name === option.name ? "active" : ""}`}
+                style={{ backgroundImage: `url(${option.image})` }}
+                onClick={() => setSelectedBackground(option)}
+                title={option.name}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
