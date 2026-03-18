@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 
 const styles = {
   page: (bg) => ({
@@ -14,7 +14,8 @@ const styles = {
     backgroundPosition: "center",
     backgroundRepeat: "no-repeat",
     fontFamily: "Arial, sans-serif",
-    overflow: "hidden",
+    overflowX: "hidden",
+    overflowY: "auto",
   }),
   overlay: {
     position: "absolute",
@@ -148,6 +149,20 @@ export default function D20DiceRoller({ onLegalClick }) {
   const [roll, setRoll] = useState(20);
   const [rolling, setRolling] = useState(false);
   const [history, setHistory] = useState([20]);
+  const [viewportWidth, setViewportWidth] = useState(typeof window === "undefined" ? 1280 : window.innerWidth);
+
+  useEffect(() => {
+    function handleResize() {
+      setViewportWidth(window.innerWidth);
+    }
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  const isMobile = viewportWidth < 768;
+  const isTablet = viewportWidth >= 768 && viewportWidth < 1100;
+  const diceSize = isMobile ? 190 : isTablet ? 220 : 256;
 
   const glow = useMemo(() => `drop-shadow(0 0 30px ${selectedColor}55)`, [selectedColor]);
 
@@ -173,19 +188,25 @@ export default function D20DiceRoller({ onLegalClick }) {
   }
 
   return (
-    <div style={styles.page(selectedBackground.image)}>
+    <div
+      style={{
+        ...styles.page(selectedBackground.image),
+        alignItems: isTablet ? "flex-start" : "center",
+        padding: isMobile ? "16px 12px 100px" : isTablet ? "20px 16px 108px" : "24px 24px 110px",
+      }}
+    >
       <div style={styles.overlay} />
-      <div style={{ position: "absolute", top: 20, right: 20, zIndex: 10 }}>
+      <div style={{ position: "absolute", top: "max(14px, env(safe-area-inset-top))", right: 12, zIndex: 10 }}>
         <button
           onClick={onLegalClick}
           style={{
             border: "1px solid rgba(255,255,255,0.2)",
             background: "rgba(0,0,0,0.4)",
             color: "white",
-            padding: "8px 16px",
+            padding: isMobile ? "8px 12px" : "8px 16px",
             borderRadius: 8,
             cursor: "pointer",
-            fontSize: 13,
+            fontSize: isMobile ? 12 : 13,
             fontWeight: 600,
             backdropFilter: "blur(8px)",
             transition: "all 0.2s ease",
@@ -196,10 +217,16 @@ export default function D20DiceRoller({ onLegalClick }) {
           Legal
         </button>
       </div>
-      <div style={styles.shell}>
-        <div style={styles.card}>
+      <div
+        style={{
+          ...styles.shell,
+          gridTemplateColumns: isTablet ? "1fr" : "1.2fr 0.8fr",
+          gap: isMobile ? "14px" : "24px",
+        }}
+      >
+        <div style={{ ...styles.card, padding: isMobile ? "16px" : "28px" }}>
           <div style={styles.label}>D20Masters</div>
-          <h1 style={styles.heading}>D20Masters</h1>
+          <h1 style={{ ...styles.heading, fontSize: isMobile ? "34px" : isTablet ? "42px" : "52px" }}>D20Masters</h1>
           <p style={{ ...styles.subtle, maxWidth: 560, marginTop: 0 }}>
             Roll a 20-sided die and switch the dice color and background instantly.
           </p>
@@ -207,8 +234,8 @@ export default function D20DiceRoller({ onLegalClick }) {
           <div style={styles.center}>
             <div
               style={{
-                width: 256,
-                height: 256,
+                width: diceSize,
+                height: diceSize,
                 transition: "transform 0.2s ease",
                 transform: rolling ? "scale(1.05)" : "scale(1)",
                 filter: glow,
@@ -251,16 +278,25 @@ export default function D20DiceRoller({ onLegalClick }) {
               </svg>
             </div>
 
-            <button onClick={handleRoll} disabled={rolling} style={styles.button(selectedColor, rolling)}>
+            <button
+              onClick={handleRoll}
+              disabled={rolling}
+              style={{
+                ...styles.button(selectedColor, rolling),
+                width: isMobile ? "100%" : "auto",
+                fontSize: isMobile ? 16 : 18,
+                padding: isMobile ? "14px 18px" : "16px 32px",
+              }}
+            >
               {rolling ? "Rolling..." : "Roll D20"}
             </button>
           </div>
         </div>
 
-        <div style={styles.card}>
+        <div style={{ ...styles.card, padding: isMobile ? "16px" : "28px" }}>
           <div>
-            <h2 style={styles.sectionTitle}>Dice Color</h2>
-            <div style={styles.grid2}>
+            <h2 style={{ ...styles.sectionTitle, fontSize: isMobile ? "22px" : "28px" }}>Dice Color</h2>
+            <div style={{ ...styles.grid2, gridTemplateColumns: isMobile ? "1fr" : styles.grid2.gridTemplateColumns }}>
               {colorOptions.map((color) => {
                 const active = selectedColor === color.value;
                 return (
@@ -274,8 +310,8 @@ export default function D20DiceRoller({ onLegalClick }) {
           </div>
 
           <div style={{ marginTop: 28 }}>
-            <h2 style={styles.sectionTitle}>Background Theme</h2>
-            <div style={styles.grid2}>
+            <h2 style={{ ...styles.sectionTitle, fontSize: isMobile ? "22px" : "28px" }}>Background Theme</h2>
+            <div style={{ ...styles.grid2, gridTemplateColumns: isMobile ? "1fr" : styles.grid2.gridTemplateColumns }}>
               {backgroundOptions.map((bg) => {
                 const active = selectedBackground.value === bg.value;
                 return (
@@ -289,8 +325,8 @@ export default function D20DiceRoller({ onLegalClick }) {
           </div>
 
           <div style={{ marginTop: 28 }}>
-            <h2 style={styles.sectionTitle}>Last Rolls</h2>
-            <div style={styles.grid4}>
+            <h2 style={{ ...styles.sectionTitle, fontSize: isMobile ? "22px" : "28px" }}>Last Rolls</h2>
+            <div style={{ ...styles.grid4, gridTemplateColumns: isMobile ? "repeat(2, minmax(0, 1fr))" : styles.grid4.gridTemplateColumns }}>
               {history.map((value, index) => (
                 <div key={`${value}-${index}`} style={styles.historyCard}>
                   <div style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: "0.08em", color: "#cbd5e1" }}>#{index + 1}</div>
@@ -310,20 +346,20 @@ export default function D20DiceRoller({ onLegalClick }) {
         rel="noopener noreferrer"
         style={{
           position: "fixed",
-          right: 18,
-          bottom: "max(18px, env(safe-area-inset-bottom))",
+          right: isMobile ? 12 : 18,
+          bottom: isMobile ? "max(12px, env(safe-area-inset-bottom))" : "max(18px, env(safe-area-inset-bottom))",
           zIndex: 30,
           display: "inline-flex",
           alignItems: "center",
           gap: 8,
           borderRadius: 999,
-          padding: "12px 18px",
+          padding: isMobile ? "10px 14px" : "12px 18px",
           background: "#f59e0b",
           color: "#111827",
           border: "2px solid rgba(255,255,255,0.55)",
           textDecoration: "none",
           fontWeight: 800,
-          fontSize: 15,
+          fontSize: isMobile ? 13 : 15,
           boxShadow: "0 12px 28px rgba(0,0,0,0.45)",
         }}
       >

@@ -1,13 +1,26 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 
 export default function Legal({ onBack }) {
+  const [viewportWidth, setViewportWidth] = useState(typeof window === "undefined" ? 1280 : window.innerWidth);
+
+  useEffect(() => {
+    function handleResize() {
+      setViewportWidth(window.innerWidth);
+    }
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  const isMobile = viewportWidth < 768;
+
   return (
     <div
       style={{
         minHeight: "100vh",
         background: "#000",
         color: "#fff",
-        padding: "40px 20px",
+        padding: isMobile ? "20px 12px 100px" : "40px 20px 120px",
         fontFamily: "Arial, sans-serif",
       }}
     >
@@ -15,28 +28,28 @@ export default function Legal({ onBack }) {
         <button
           onClick={onBack}
           style={{
-            marginBottom: 40,
+            marginBottom: isMobile ? 24 : 40,
             border: "1px solid rgba(255,255,255,0.3)",
             background: "rgba(255,255,255,0.08)",
             color: "#fff",
-            padding: "10px 20px",
+            padding: isMobile ? "9px 14px" : "10px 20px",
             borderRadius: 8,
             cursor: "pointer",
-            fontSize: 14,
+            fontSize: isMobile ? 13 : 14,
             fontWeight: 600,
           }}
         >
           ← Back to Roller
         </button>
 
-        <h1 style={{ fontSize: 48, fontWeight: 900, marginBottom: 40 }}>Legal</h1>
+        <h1 style={{ fontSize: isMobile ? 34 : 48, fontWeight: 900, marginBottom: isMobile ? 24 : 40 }}>Legal</h1>
 
         {/* Terms of Service */}
-        <section style={{ marginBottom: 60 }}>
-          <h2 style={{ fontSize: 32, fontWeight: 800, marginBottom: 20, color: "#f8fafc" }}>
+        <section style={{ marginBottom: isMobile ? 34 : 60 }}>
+          <h2 style={{ fontSize: isMobile ? 24 : 32, fontWeight: 800, marginBottom: 20, color: "#f8fafc" }}>
             Terms of Service
           </h2>
-          <div style={{ color: "#cbd5e1", lineHeight: 1.8, fontSize: 16 }}>
+          <div style={{ color: "#cbd5e1", lineHeight: 1.8, fontSize: isMobile ? 15 : 16 }}>
             <p>
               Use this site at your own risk. No warranties of any kind are provided, expressed or
               implied. We make no guarantee regarding the accuracy, reliability, or availability of
@@ -59,11 +72,11 @@ export default function Legal({ onBack }) {
         </section>
 
         {/* Privacy Policy */}
-        <section style={{ marginBottom: 60 }}>
-          <h2 style={{ fontSize: 32, fontWeight: 800, marginBottom: 20, color: "#f8fafc" }}>
+        <section style={{ marginBottom: isMobile ? 34 : 60 }}>
+          <h2 style={{ fontSize: isMobile ? 24 : 32, fontWeight: 800, marginBottom: 20, color: "#f8fafc" }}>
             Privacy Policy
           </h2>
-          <div style={{ color: "#cbd5e1", lineHeight: 1.8, fontSize: 16 }}>
+          <div style={{ color: "#cbd5e1", lineHeight: 1.8, fontSize: isMobile ? 15 : 16 }}>
             <p>
               <strong style={{ color: "#f8fafc" }}>Data Collection:</strong> D20Masters does not
               collect, store, or transmit any personal information. No accounts are required. All
@@ -97,13 +110,13 @@ export default function Legal({ onBack }) {
         </section>
 
         {/* FAQ */}
-        <section style={{ marginBottom: 60 }}>
-          <h2 style={{ fontSize: 32, fontWeight: 800, marginBottom: 20, color: "#f8fafc" }}>
+        <section style={{ marginBottom: isMobile ? 34 : 60 }}>
+          <h2 style={{ fontSize: isMobile ? 24 : 32, fontWeight: 800, marginBottom: 20, color: "#f8fafc" }}>
             Frequently Asked Questions
           </h2>
-          <div style={{ display: "grid", gap: 28 }}>
+          <div style={{ display: "grid", gap: isMobile ? 20 : 28 }}>
             <div>
-              <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8, color: "#f8fafc" }}>
+              <h3 style={{ fontSize: isMobile ? 17 : 18, fontWeight: 700, marginBottom: 8, color: "#f8fafc" }}>
                 What is D20Masters?
               </h3>
               <p style={{ color: "#cbd5e1", lineHeight: 1.8, margin: 0 }}>
@@ -114,7 +127,7 @@ export default function Legal({ onBack }) {
             </div>
 
             <div>
-              <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8, color: "#f8fafc" }}>
+              <h3 style={{ fontSize: isMobile ? 17 : 18, fontWeight: 700, marginBottom: 8, color: "#f8fafc" }}>
                 Is this application free to use?
               </h3>
               <p style={{ color: "#cbd5e1", lineHeight: 1.8, margin: 0 }}>
@@ -124,7 +137,7 @@ export default function Legal({ onBack }) {
             </div>
 
             <div>
-              <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8, color: "#f8fafc" }}>
+              <h3 style={{ fontSize: isMobile ? 17 : 18, fontWeight: 700, marginBottom: 8, color: "#f8fafc" }}>
                 Are the dice rolls truly random?
               </h3>
               <p style={{ color: "#cbd5e1", lineHeight: 1.8, margin: 0 }}>
@@ -135,7 +148,7 @@ export default function Legal({ onBack }) {
             </div>
 
             <div>
-              <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8, color: "#f8fafc" }}>
+              <h3 style={{ fontSize: isMobile ? 17 : 18, fontWeight: 700, marginBottom: 8, color: "#f8fafc" }}>
                 Does the app save my roll history?
               </h3>
               <p style={{ color: "#cbd5e1", lineHeight: 1.8, margin: 0 }}>
@@ -145,7 +158,7 @@ export default function Legal({ onBack }) {
             </div>
 
             <div>
-              <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8, color: "#f8fafc" }}>
+              <h3 style={{ fontSize: isMobile ? 17 : 18, fontWeight: 700, marginBottom: 8, color: "#f8fafc" }}>
                 Can I use D20Masters on mobile?
               </h3>
               <p style={{ color: "#cbd5e1", lineHeight: 1.8, margin: 0 }}>
@@ -155,7 +168,7 @@ export default function Legal({ onBack }) {
             </div>
 
             <div>
-              <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8, color: "#f8fafc" }}>
+              <h3 style={{ fontSize: isMobile ? 17 : 18, fontWeight: 700, marginBottom: 8, color: "#f8fafc" }}>
                 Who created D20Masters?
               </h3>
               <p style={{ color: "#cbd5e1", lineHeight: 1.8, margin: 0 }}>
@@ -165,7 +178,7 @@ export default function Legal({ onBack }) {
             </div>
 
             <div>
-              <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8, color: "#f8fafc" }}>
+              <h3 style={{ fontSize: isMobile ? 17 : 18, fontWeight: 700, marginBottom: 8, color: "#f8fafc" }}>
                 Can I use this for D&D or other tabletop games?
               </h3>
               <p style={{ color: "#cbd5e1", lineHeight: 1.8, margin: 0 }}>
@@ -196,20 +209,20 @@ export default function Legal({ onBack }) {
           rel="noopener noreferrer"
           style={{
             position: "fixed",
-            right: 18,
-            bottom: "max(18px, env(safe-area-inset-bottom))",
+            right: isMobile ? 12 : 18,
+            bottom: isMobile ? "max(12px, env(safe-area-inset-bottom))" : "max(18px, env(safe-area-inset-bottom))",
             zIndex: 30,
             display: "inline-flex",
             alignItems: "center",
             gap: 8,
             borderRadius: 999,
-            padding: "12px 18px",
+            padding: isMobile ? "10px 14px" : "12px 18px",
             background: "#f59e0b",
             color: "#111827",
             border: "2px solid rgba(255,255,255,0.55)",
             textDecoration: "none",
             fontWeight: 800,
-            fontSize: 15,
+            fontSize: isMobile ? 13 : 15,
             boxShadow: "0 12px 28px rgba(0,0,0,0.45)",
           }}
         >
