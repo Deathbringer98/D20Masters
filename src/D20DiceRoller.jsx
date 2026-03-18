@@ -304,6 +304,33 @@ export default function D20DiceRoller({ onLegalClick }) {
         </div>
       </div>
 
+      <a
+        href="https://buymeacoffee.com/ghostbyte"
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{
+          position: "fixed",
+          bottom: 18,
+          left: "50%",
+          transform: "translateX(-50%)",
+          zIndex: 12,
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 8,
+          borderRadius: 999,
+          padding: "10px 16px",
+          background: "#f59e0b",
+          color: "#111827",
+          border: "1px solid rgba(0,0,0,0.2)",
+          textDecoration: "none",
+          fontWeight: 800,
+          fontSize: 14,
+          boxShadow: "0 10px 24px rgba(0,0,0,0.35)",
+        }}
+      >
+        Buy Me a Coffee
+      </a>
+
       <style>{`
         @keyframes spin {
           from { transform: rotate(0deg); }
