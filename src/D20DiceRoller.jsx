@@ -98,7 +98,7 @@ const styles = {
   },
 };
 
-export default function D20DiceRoller() {
+export default function D20DiceRoller({ onLegalClick }) {
   const colorOptions = [
     { name: "Crimson", value: "#dc2626" },
     { name: "Emerald", value: "#16a34a" },
@@ -175,6 +175,27 @@ export default function D20DiceRoller() {
   return (
     <div style={styles.page(selectedBackground.image)}>
       <div style={styles.overlay} />
+      <div style={{ position: "absolute", top: 20, right: 20, zIndex: 10 }}>
+        <button
+          onClick={onLegalClick}
+          style={{
+            border: "1px solid rgba(255,255,255,0.2)",
+            background: "rgba(0,0,0,0.4)",
+            color: "white",
+            padding: "8px 16px",
+            borderRadius: 8,
+            cursor: "pointer",
+            fontSize: 13,
+            fontWeight: 600,
+            backdropFilter: "blur(8px)",
+            transition: "all 0.2s ease",
+          }}
+          onMouseEnter={(e) => (e.target.style.background = "rgba(255,255,255,0.12)")}
+          onMouseLeave={(e) => (e.target.style.background = "rgba(0,0,0,0.4)")}
+        >
+          Legal
+        </button>
+      </div>
       <div style={styles.shell}>
         <div style={styles.card}>
           <div style={styles.label}>D20Masters</div>
@@ -282,45 +303,6 @@ export default function D20DiceRoller() {
           <div style={{ marginTop: 28, ...styles.footerBox }}>Use for various games such as D&D</div>
         </div>
       </div>
-
-      <footer
-        style={{
-          position: "relative",
-          zIndex: 2,
-          marginTop: 40,
-          borderTop: "1px solid rgba(255,255,255,0.12)",
-          paddingTop: 28,
-          paddingBottom: 28,
-          paddingLeft: 24,
-          paddingRight: 24,
-          textAlign: "center",
-          color: "#cbd5e1",
-          fontSize: 14,
-        }}
-      >
-        <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 28, marginBottom: 28 }}>
-            <div>
-              <h3 style={{ fontSize: 16, fontWeight: 700, color: "#f8fafc", marginBottom: 12 }}>Terms of Service</h3>
-              <p style={{ margin: 0 }}>Use this site at your own risk. No warranties are provided. No refunds on any future paid features.</p>
-            </div>
-            <div>
-              <h3 style={{ fontSize: 16, fontWeight: 700, color: "#f8fafc", marginBottom: 12 }}>Privacy Policy</h3>
-              <p style={{ margin: 0 }}>No personal data is stored. We do not track users. Use the site freely.</p>
-            </div>
-            <div>
-              <h3 style={{ fontSize: 16, fontWeight: 700, color: "#f8fafc", marginBottom: 12 }}>FAQ</h3>
-              <p style={{ margin: "0 0 8px 0" }}><strong>Q:</strong> Is this random?</p>
-              <p style={{ margin: "0 0 8px 0" }}>A: Yes, browser-based RNG.</p>
-              <p style={{ margin: 0 }}><strong>Q:</strong> Can I use this for games?</p>
-              <p style={{ margin: 0 }}>A: Yes, use for D&D and similar games.</p>
-            </div>
-          </div>
-          <div style={{ borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: 16, color: "#9ca3af" }}>
-            © 2026 D20Masters — Owner & Creator: GhostByte
-          </div>
-        </div>
-      </footer>
 
       <style>{`
         @keyframes spin {
