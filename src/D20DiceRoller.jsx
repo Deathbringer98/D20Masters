@@ -310,22 +310,21 @@ export default function D20DiceRoller({ onLegalClick }) {
         rel="noopener noreferrer"
         style={{
           position: "fixed",
-          bottom: 18,
-          left: "50%",
-          transform: "translateX(-50%)",
-          zIndex: 12,
+          right: 18,
+          bottom: "max(18px, env(safe-area-inset-bottom))",
+          zIndex: 30,
           display: "inline-flex",
           alignItems: "center",
           gap: 8,
           borderRadius: 999,
-          padding: "10px 16px",
+          padding: "12px 18px",
           background: "#f59e0b",
           color: "#111827",
-          border: "1px solid rgba(0,0,0,0.2)",
+          border: "2px solid rgba(255,255,255,0.55)",
           textDecoration: "none",
           fontWeight: 800,
-          fontSize: 14,
-          boxShadow: "0 10px 24px rgba(0,0,0,0.35)",
+          fontSize: 15,
+          boxShadow: "0 12px 28px rgba(0,0,0,0.45)",
         }}
       >
         Buy Me a Coffee

@@ -189,6 +189,32 @@ export default function Legal({ onBack }) {
         >
           <p style={{ margin: 0 }}>© 2026 D20Masters — Owner & Creator: GhostByte</p>
         </div>
+
+        <a
+          href="https://buymeacoffee.com/ghostbyte"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            position: "fixed",
+            right: 18,
+            bottom: "max(18px, env(safe-area-inset-bottom))",
+            zIndex: 30,
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 8,
+            borderRadius: 999,
+            padding: "12px 18px",
+            background: "#f59e0b",
+            color: "#111827",
+            border: "2px solid rgba(255,255,255,0.55)",
+            textDecoration: "none",
+            fontWeight: 800,
+            fontSize: 15,
+            boxShadow: "0 12px 28px rgba(0,0,0,0.45)",
+          }}
+        >
+          Buy Me a Coffee
+        </a>
       </div>
     </div>
   );
