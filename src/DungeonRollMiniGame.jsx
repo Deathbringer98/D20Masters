@@ -234,6 +234,20 @@ function getAssetUrl(fileName) {
   return `${basePath}/${encodeURIComponent(fileName)}`;
 }
 
+function getAssetUrlCandidates(fileName) {
+  const encoded = encodeURIComponent(fileName);
+  const basePath = getGithubPagesBasePath();
+
+  return Array.from(
+    new Set([
+      `${basePath}/${encoded}`,
+      `/${encoded}`,
+      `/dist/${encoded}`,
+      `./${encoded}`,
+    ])
+  );
+}
+
 export default function DungeonRollMiniGame({ onBack }) {
   const canvasRef = useRef(null);
   const rafRef = useRef(0);
@@ -740,8 +754,22 @@ export default function DungeonRollMiniGame({ onBack }) {
 
     const rollSfx = rollSfxRef.current;
     if (rollSfx) {
+      const candidates = getAssetUrlCandidates("dice-roll.mp3");
+      const currentSrc = rollSfx.getAttribute("data-src") || "";
+      const fallbackSrc = candidates.find((candidate) => candidate !== currentSrc) || candidates[0];
+
       rollSfx.currentTime = 0;
-      rollSfx.play().catch(() => {});
+      rollSfx
+        .play()
+        .catch(() => {
+          if (fallbackSrc && fallbackSrc !== currentSrc) {
+            rollSfx.src = fallbackSrc;
+            rollSfx.setAttribute("data-src", fallbackSrc);
+            rollSfx.currentTime = 0;
+            return rollSfx.play().catch(() => {});
+          }
+          return Promise.resolve();
+        });
     }
 
     g.rolling = true;
@@ -910,9 +938,11 @@ export default function DungeonRollMiniGame({ onBack }) {
   }, []);
 
   useEffect(() => {
-    const rollSfx = new Audio(getAssetUrl("dice-roll.mp3"));
+    const initialSrc = getAssetUrl("dice-roll.mp3");
+    const rollSfx = new Audio(initialSrc);
     rollSfx.preload = "auto";
     rollSfx.volume = 0.9;
+    rollSfx.setAttribute("data-src", initialSrc);
     rollSfxRef.current = rollSfx;
 
     return () => {
