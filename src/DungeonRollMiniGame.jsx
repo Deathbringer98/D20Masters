@@ -229,11 +229,17 @@ function getBgmUrl() {
   return `${basePath}/${encodedName}`;
 }
 
+function getAssetUrl(fileName) {
+  const basePath = getGithubPagesBasePath();
+  return `${basePath}/${encodeURIComponent(fileName)}`;
+}
+
 export default function DungeonRollMiniGame({ onBack }) {
   const canvasRef = useRef(null);
   const rafRef = useRef(0);
   const rollerRef = useRef(0);
   const bgmRef = useRef(null);
+  const rollSfxRef = useRef(null);
   const [isMobile, setIsMobile] = useState(
     typeof window !== "undefined" ? window.innerWidth <= 920 : false
   );
@@ -732,6 +738,12 @@ export default function DungeonRollMiniGame({ onBack }) {
     const g = gameRef.current;
     if (!g.inCombat || g.rolling || !g.currentCombatEnemy) return;
 
+    const rollSfx = rollSfxRef.current;
+    if (rollSfx) {
+      rollSfx.currentTime = 0;
+      rollSfx.play().catch(() => {});
+    }
+
     g.rolling = true;
     setCombat((prev) => ({ ...prev, rolling: true, result: "Rolling..." }));
 
@@ -894,6 +906,19 @@ export default function DungeonRollMiniGame({ onBack }) {
       bgm.pause();
       bgm.currentTime = 0;
       bgmRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    const rollSfx = new Audio(getAssetUrl("dice-roll.mp3"));
+    rollSfx.preload = "auto";
+    rollSfx.volume = 0.9;
+    rollSfxRef.current = rollSfx;
+
+    return () => {
+      rollSfx.pause();
+      rollSfx.currentTime = 0;
+      rollSfxRef.current = null;
     };
   }, []);
 
