@@ -351,7 +351,7 @@ export default function D20DiceRoller({ onLegalClick }) {
         style={{
           position: "fixed",
           right: isMobile ? 12 : 18,
-          bottom: isMobile ? "max(12px, env(safe-area-inset-bottom))" : "max(18px, env(safe-area-inset-bottom))",
+          bottom: isMobile ? "max(80px, calc(env(safe-area-inset-bottom) + 68px))" : "max(100px, calc(env(safe-area-inset-bottom) + 80px))",
           zIndex: 30,
           display: "inline-flex",
           alignItems: "center",
