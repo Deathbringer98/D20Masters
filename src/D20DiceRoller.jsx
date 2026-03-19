@@ -149,7 +149,7 @@ export default function D20DiceRoller({ onLegalClick }) {
   const [roll, setRoll] = useState(20);
   const [rolling, setRolling] = useState(false);
   const [history, setHistory] = useState([20]);
-  const audioRef = useRef(new Audio("/dice-roll.mp3"));
+  const audioRef = useRef(new Audio("/dist/dice-roll.mp3"));
   const [viewportWidth, setViewportWidth] = useState(typeof window === "undefined" ? 1280 : window.innerWidth);
 
   useEffect(() => {
@@ -171,12 +171,27 @@ export default function D20DiceRoller({ onLegalClick }) {
     return Math.floor(Math.random() * 20) + 1;
   }
 
+  function getPreferredAudioPath() {
+    if (typeof document === "undefined") return "/dice-roll.mp3";
+    const moduleSrc = document.querySelector('script[type="module"][src]')?.getAttribute("src") || "";
+    return moduleSrc.includes("/dist/assets/") ? "/dist/dice-roll.mp3" : "/dice-roll.mp3";
+  }
+
   function handleRoll() {
     if (rolling) return;
     setRolling(true);
     const audio = audioRef.current;
+    const preferred = getPreferredAudioPath();
+    if (!audio.src.includes(preferred)) {
+      audio.src = preferred;
+    }
     audio.currentTime = 0;
-    audio.play().catch(() => {});
+    audio.play().catch(() => {
+      const fallback = preferred === "/dist/dice-roll.mp3" ? "/dice-roll.mp3" : "/dist/dice-roll.mp3";
+      audio.src = fallback;
+      audio.currentTime = 0;
+      audio.play().catch(() => {});
+    });
     let ticks = 0;
     const interval = setInterval(() => {
       setRoll(randomD20());
