@@ -249,6 +249,7 @@ export default function DungeonRollMiniGame({ onBack }) {
   const bgmRef = useRef(null);
   const rollSfxRef = useRef(null);
   const killSfxRef = useRef(null);
+  const deathSfxRef = useRef(null);
   const [isMobile, setIsMobile] = useState(
     typeof window !== "undefined" ? window.innerWidth <= 920 : false
   );
@@ -598,6 +599,27 @@ export default function DungeonRollMiniGame({ onBack }) {
 
   const hitPlayer = useCallback(() => {
     const g = gameRef.current;
+
+    const deathSfx = deathSfxRef.current;
+    if (deathSfx) {
+      const candidates = getAssetUrlCandidates("you-died.mp3");
+      const currentSrc = deathSfx.getAttribute("data-src") || "";
+      const fallbackSrc = candidates.find((candidate) => candidate !== currentSrc) || candidates[0];
+
+      deathSfx.currentTime = 0;
+      deathSfx
+        .play()
+        .catch(() => {
+          if (fallbackSrc && fallbackSrc !== currentSrc) {
+            deathSfx.src = fallbackSrc;
+            deathSfx.setAttribute("data-src", fallbackSrc);
+            deathSfx.currentTime = 0;
+            return deathSfx.play().catch(() => {});
+          }
+          return Promise.resolve();
+        });
+    }
+
     g.lives -= 1;
     g.inCombat = false;
     g.currentCombatEnemy = null;
@@ -1012,6 +1034,21 @@ export default function DungeonRollMiniGame({ onBack }) {
       killSfx.pause();
       killSfx.currentTime = 0;
       killSfxRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    const initialSrc = getAssetUrl("you-died.mp3");
+    const deathSfx = new Audio(initialSrc);
+    deathSfx.preload = "auto";
+    deathSfx.volume = 0.95;
+    deathSfx.setAttribute("data-src", initialSrc);
+    deathSfxRef.current = deathSfx;
+
+    return () => {
+      deathSfx.pause();
+      deathSfx.currentTime = 0;
+      deathSfxRef.current = null;
     };
   }, []);
 
