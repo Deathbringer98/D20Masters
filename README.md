@@ -1,2 +1,3 @@
-# D20Masters D 20 Dice website for table top games like D&D MTG & more.
+# D20Masters 
+D20 Dice website for table top games like D&D, MTG & more.
 
