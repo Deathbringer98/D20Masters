@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import diceRollSound from "./sounds/dice-roll.mp3";
 
 const styles = {
   page: (bg) => ({
@@ -149,6 +150,7 @@ export default function D20DiceRoller({ onLegalClick }) {
   const [roll, setRoll] = useState(20);
   const [rolling, setRolling] = useState(false);
   const [history, setHistory] = useState([20]);
+  const audioRef = useRef(new Audio(diceRollSound));
   const [viewportWidth, setViewportWidth] = useState(typeof window === "undefined" ? 1280 : window.innerWidth);
 
   useEffect(() => {
@@ -173,6 +175,9 @@ export default function D20DiceRoller({ onLegalClick }) {
   function handleRoll() {
     if (rolling) return;
     setRolling(true);
+    const audio = audioRef.current;
+    audio.currentTime = 0;
+    audio.play().catch(() => {});
     let ticks = 0;
     const interval = setInterval(() => {
       setRoll(randomD20());
