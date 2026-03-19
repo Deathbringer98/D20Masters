@@ -601,6 +601,26 @@ export default function DungeonRollMiniGame({ onBack }) {
   const hitPlayer = useCallback(() => {
     const g = gameRef.current;
 
+    const deathSfx = deathSfxRef.current;
+    if (deathSfx) {
+      const candidates = getAssetUrlCandidates("you-died.mp3");
+      const currentSrc = deathSfx.getAttribute("data-src") || "";
+      const fallbackSrc = candidates.find((candidate) => candidate !== currentSrc) || candidates[0];
+
+      deathSfx.currentTime = 0;
+      deathSfx
+        .play()
+        .catch(() => {
+          if (fallbackSrc && fallbackSrc !== currentSrc) {
+            deathSfx.src = fallbackSrc;
+            deathSfx.setAttribute("data-src", fallbackSrc);
+            deathSfx.currentTime = 0;
+            return deathSfx.play().catch(() => {});
+          }
+          return Promise.resolve();
+        });
+    }
+
     g.lives -= 1;
     g.inCombat = false;
     g.currentCombatEnemy = null;
@@ -617,26 +637,6 @@ export default function DungeonRollMiniGame({ onBack }) {
 
     if (g.lives <= 0) {
       g.gameOver = true;
-
-      const deathSfx = deathSfxRef.current;
-      if (deathSfx) {
-        const candidates = getAssetUrlCandidates("you-died.mp3");
-        const currentSrc = deathSfx.getAttribute("data-src") || "";
-        const fallbackSrc = candidates.find((candidate) => candidate !== currentSrc) || candidates[0];
-
-        deathSfx.currentTime = 0;
-        deathSfx
-          .play()
-          .catch(() => {
-            if (fallbackSrc && fallbackSrc !== currentSrc) {
-              deathSfx.src = fallbackSrc;
-              deathSfx.setAttribute("data-src", fallbackSrc);
-              deathSfx.currentTime = 0;
-              return deathSfx.play().catch(() => {});
-            }
-            return Promise.resolve();
-          });
-      }
 
       updateHud();
       draw();
