@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import diceRollSound from "./sounds/dice-roll.mp3";
 
 const styles = {
   page: (bg) => ({
@@ -150,7 +149,7 @@ export default function D20DiceRoller({ onLegalClick }) {
   const [roll, setRoll] = useState(20);
   const [rolling, setRolling] = useState(false);
   const [history, setHistory] = useState([20]);
-  const audioRef = useRef(new Audio(diceRollSound));
+  const audioRef = useRef(new Audio("/dice-roll.mp3"));
   const [viewportWidth, setViewportWidth] = useState(typeof window === "undefined" ? 1280 : window.innerWidth);
 
   useEffect(() => {
