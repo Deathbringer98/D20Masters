@@ -1092,7 +1092,7 @@ export default function DungeonRollMiniGame({ onBack }) {
         <div style={styles.titlebar}>
           <div>
             <div style={styles.logo}>Dungeon Roll</div>
-            <div style={styles.subtitle}>NES-style browser mini-game for D20Masters</div>
+            <div style={styles.subtitle}>NES-style browser mini-game from D20Masters.ink</div>
           </div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             <button style={{ ...styles.btn, width: "auto", minWidth: 150 }} onClick={onBack}>
