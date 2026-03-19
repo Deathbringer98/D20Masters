@@ -254,6 +254,7 @@ export default function DungeonRollMiniGame({ onBack }) {
   const rollerRef = useRef(0);
   const bgmRef = useRef(null);
   const rollSfxRef = useRef(null);
+  const killSfxRef = useRef(null);
   const [isMobile, setIsMobile] = useState(
     typeof window !== "undefined" ? window.innerWidth <= 920 : false
   );
@@ -772,6 +773,28 @@ export default function DungeonRollMiniGame({ onBack }) {
         });
     }
 
+    const playKillSfx = () => {
+      const killSfx = killSfxRef.current;
+      if (!killSfx) return;
+
+      const candidates = getAssetUrlCandidates("monster-dying-effect.mp3");
+      const currentSrc = killSfx.getAttribute("data-src") || "";
+      const fallbackSrc = candidates.find((candidate) => candidate !== currentSrc) || candidates[0];
+
+      killSfx.currentTime = 0;
+      killSfx
+        .play()
+        .catch(() => {
+          if (fallbackSrc && fallbackSrc !== currentSrc) {
+            killSfx.src = fallbackSrc;
+            killSfx.setAttribute("data-src", fallbackSrc);
+            killSfx.currentTime = 0;
+            return killSfx.play().catch(() => {});
+          }
+          return Promise.resolve();
+        });
+    };
+
     g.rolling = true;
     setCombat((prev) => ({ ...prev, rolling: true, result: "Rolling..." }));
 
@@ -794,6 +817,7 @@ export default function DungeonRollMiniGame({ onBack }) {
         g.currentCombatEnemy = null;
         g.rolling = false;
         updateHud();
+        playKillSfx();
 
         setCombat((prev) => ({
           ...prev,
@@ -831,6 +855,7 @@ export default function DungeonRollMiniGame({ onBack }) {
         g.currentCombatEnemy = null;
         g.rolling = false;
         updateHud();
+        playKillSfx();
 
         setCombat((prev) => ({
           ...prev,
@@ -949,6 +974,21 @@ export default function DungeonRollMiniGame({ onBack }) {
       rollSfx.pause();
       rollSfx.currentTime = 0;
       rollSfxRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    const initialSrc = getAssetUrl("monster-dying-effect.mp3");
+    const killSfx = new Audio(initialSrc);
+    killSfx.preload = "auto";
+    killSfx.volume = 0.95;
+    killSfx.setAttribute("data-src", initialSrc);
+    killSfxRef.current = killSfx;
+
+    return () => {
+      killSfx.pause();
+      killSfx.currentTime = 0;
+      killSfxRef.current = null;
     };
   }, []);
 
