@@ -13,7 +13,9 @@ if (!dist.includes("amp-auto-ads")) {
 	dist = dist.replace("<body>", "<body>\n" + AMP_TAG);
 	writeFileSync("dist/index.html", dist, "utf8");
 }
-const updated = dist.replace(/\/(assets\/)/g, "/dist/$1");
+const updated = dist
+	.replace(/\"\.\/assets\//g, '"/dist/assets/')
+	.replace(/\"\/assets\//g, '"/dist/assets/');
 writeFileSync("index.html", updated, "utf8");
 writeFileSync("404.html", readFileSync("dist/404.html", "utf8"), "utf8");
 console.log("✅  root index.html updated with current build hashes.");

@@ -12,6 +12,37 @@ const PAGE_TO_PATH = {
   "dungeon-roll": "/dungeon-roll",
 };
 
+function getGithubPagesBasePath() {
+  if (typeof window === "undefined") return "";
+
+  const isProjectPages =
+    window.location.hostname.endsWith("github.io") &&
+    window.location.pathname.split("/").filter(Boolean).length > 0;
+
+  if (!isProjectPages) return "";
+
+  const firstSegment = window.location.pathname.split("/").filter(Boolean)[0];
+  return firstSegment ? `/${firstSegment}` : "";
+}
+
+function withBase(pathname) {
+  const basePath = getGithubPagesBasePath();
+  if (!basePath) return pathname;
+  return pathname === "/" ? `${basePath}/` : `${basePath}${pathname}`;
+}
+
+function stripBase(pathname) {
+  const basePath = getGithubPagesBasePath();
+  if (!basePath) return pathname;
+
+  if (pathname === basePath || pathname === `${basePath}/`) return "/";
+  if (pathname.startsWith(`${basePath}/`)) {
+    return pathname.slice(basePath.length) || "/";
+  }
+
+  return pathname;
+}
+
 function pageFromLocation() {
   if (typeof window === "undefined") return "home";
 
@@ -21,11 +52,12 @@ function pageFromLocation() {
     const nextPath = redirectedPath.startsWith("/")
       ? redirectedPath
       : `/${redirectedPath}`;
-    const nextUrl = `${nextPath}${window.location.hash || ""}`;
+    const normalizedNextPath = stripBase(nextPath);
+    const nextUrl = `${withBase(normalizedNextPath)}${window.location.hash || ""}`;
     window.history.replaceState({ page: "home" }, "", nextUrl);
   }
 
-  const normalizedPath = (window.location.pathname || "/")
+  const normalizedPath = (stripBase(window.location.pathname || "/") || "/")
     .toLowerCase()
     .replace(/\/+$/, "") || "/";
   const normalizedHash = (window.location.hash || "").toLowerCase();
@@ -52,7 +84,7 @@ export default function App() {
 
     if (typeof window === "undefined") return;
 
-    const targetPath = PAGE_TO_PATH[nextPage] || "/";
+    const targetPath = withBase(PAGE_TO_PATH[nextPage] || "/");
     const targetUrl = `${targetPath}${window.location.search}`;
     const currentUrl = `${window.location.pathname}${window.location.search}`;
     if (targetUrl === currentUrl) return;
