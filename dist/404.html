@@ -4,6 +4,21 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Page Not Found - D20Masters</title>
+    <script>
+      (function redirectForSpa() {
+        var pathSegments = window.location.pathname.split("/").filter(Boolean);
+        var isGithubProjectSite =
+          window.location.hostname.endsWith("github.io") && pathSegments.length > 0;
+        var basePath = isGithubProjectSite ? "/" + pathSegments[0] + "/" : "/";
+        var redirect =
+          basePath +
+          "?p=" +
+          encodeURIComponent(window.location.pathname) +
+          (window.location.search || "") +
+          (window.location.hash || "");
+        window.location.replace(redirect);
+      })();
+    </script>
     <style>
       body {
         margin: 0;
