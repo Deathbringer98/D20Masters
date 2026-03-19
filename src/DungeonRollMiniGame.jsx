@@ -210,6 +210,25 @@ function coordKey(x, y) {
   return `${x},${y}`;
 }
 
+function getGithubPagesBasePath() {
+  if (typeof window === "undefined") return "";
+
+  const pathSegments = (window.location.pathname || "/")
+    .split("/")
+    .filter(Boolean);
+  const isProjectPages =
+    window.location.hostname.endsWith("github.io") && pathSegments.length > 0;
+
+  if (!isProjectPages) return "";
+  return `/${pathSegments[0]}`;
+}
+
+function getBgmUrl() {
+  const basePath = getGithubPagesBasePath();
+  const encodedName = "NES%20TITLE%20THEME%20SONG.mp3";
+  return `${basePath}/${encodedName}`;
+}
+
 export default function DungeonRollMiniGame({ onBack }) {
   const canvasRef = useRef(null);
   const rafRef = useRef(0);
@@ -850,7 +869,7 @@ export default function DungeonRollMiniGame({ onBack }) {
   }, [moveEnemies, movePlayer, resetGame]);
 
   useEffect(() => {
-    const bgm = new Audio("/NES TITLE THEME SONG.mp3");
+    const bgm = new Audio(getBgmUrl());
     bgm.loop = true;
     bgm.volume = 0.45;
     bgmRef.current = bgm;
