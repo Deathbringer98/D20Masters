@@ -601,26 +601,6 @@ export default function DungeonRollMiniGame({ onBack }) {
   const hitPlayer = useCallback(() => {
     const g = gameRef.current;
 
-    const deathSfx = deathSfxRef.current;
-    if (deathSfx) {
-      const candidates = getAssetUrlCandidates("you-died.mp3");
-      const currentSrc = deathSfx.getAttribute("data-src") || "";
-      const fallbackSrc = candidates.find((candidate) => candidate !== currentSrc) || candidates[0];
-
-      deathSfx.currentTime = 0;
-      deathSfx
-        .play()
-        .catch(() => {
-          if (fallbackSrc && fallbackSrc !== currentSrc) {
-            deathSfx.src = fallbackSrc;
-            deathSfx.setAttribute("data-src", fallbackSrc);
-            deathSfx.currentTime = 0;
-            return deathSfx.play().catch(() => {});
-          }
-          return Promise.resolve();
-        });
-    }
-
     g.lives -= 1;
     g.inCombat = false;
     g.currentCombatEnemy = null;
@@ -637,6 +617,27 @@ export default function DungeonRollMiniGame({ onBack }) {
 
     if (g.lives <= 0) {
       g.gameOver = true;
+
+      const deathSfx = deathSfxRef.current;
+      if (deathSfx) {
+        const candidates = getAssetUrlCandidates("you-died.mp3");
+        const currentSrc = deathSfx.getAttribute("data-src") || "";
+        const fallbackSrc = candidates.find((candidate) => candidate !== currentSrc) || candidates[0];
+
+        deathSfx.currentTime = 0;
+        deathSfx
+          .play()
+          .catch(() => {
+            if (fallbackSrc && fallbackSrc !== currentSrc) {
+              deathSfx.src = fallbackSrc;
+              deathSfx.setAttribute("data-src", fallbackSrc);
+              deathSfx.currentTime = 0;
+              return deathSfx.play().catch(() => {});
+            }
+            return Promise.resolve();
+          });
+      }
+
       updateHud();
       draw();
       return;
@@ -1050,6 +1051,38 @@ export default function DungeonRollMiniGame({ onBack }) {
       deathSfx.pause();
       deathSfx.currentTime = 0;
       deathSfxRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    const unlockSfx = () => {
+      const allSfx = [rollSfxRef.current, killSfxRef.current, deathSfxRef.current];
+
+      for (const sfx of allSfx) {
+        if (!sfx) continue;
+        const wasMuted = sfx.muted;
+
+        sfx.muted = true;
+        sfx.currentTime = 0;
+        sfx
+          .play()
+          .then(() => {
+            sfx.pause();
+            sfx.currentTime = 0;
+            sfx.muted = wasMuted;
+          })
+          .catch(() => {
+            sfx.muted = wasMuted;
+          });
+      }
+    };
+
+    window.addEventListener("pointerdown", unlockSfx, { once: true });
+    window.addEventListener("keydown", unlockSfx, { once: true });
+
+    return () => {
+      window.removeEventListener("pointerdown", unlockSfx);
+      window.removeEventListener("keydown", unlockSfx);
     };
   }, []);
 
