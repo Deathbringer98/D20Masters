@@ -224,8 +224,7 @@ function getGithubPagesBasePath() {
 }
 
 function getAssetUrl(fileName) {
-  const basePath = getGithubPagesBasePath();
-  return `${basePath}/${encodeURIComponent(fileName)}`;
+  return getAssetUrlCandidates(fileName)[0];
 }
 
 function getAssetUrlCandidates(fileName) {
@@ -234,7 +233,9 @@ function getAssetUrlCandidates(fileName) {
 
   return Array.from(
     new Set([
+      `${basePath}/dist/${encoded}`,
       `${basePath}/${encoded}`,
+      `dist/${encoded}`,
       `/${encoded}`,
       `/dist/${encoded}`,
       `./${encoded}`,
