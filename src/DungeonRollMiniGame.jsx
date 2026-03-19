@@ -223,12 +223,6 @@ function getGithubPagesBasePath() {
   return `/${pathSegments[0]}`;
 }
 
-function getBgmUrl() {
-  const basePath = getGithubPagesBasePath();
-  const encodedName = "NES%20TITLE%20THEME%20SONG.mp3";
-  return `${basePath}/${encodedName}`;
-}
-
 function getAssetUrl(fileName) {
   const basePath = getGithubPagesBasePath();
   return `${basePath}/${encodeURIComponent(fileName)}`;
@@ -934,15 +928,43 @@ export default function DungeonRollMiniGame({ onBack }) {
   }, [moveEnemies, movePlayer, resetGame]);
 
   useEffect(() => {
-    const bgm = new Audio(getBgmUrl());
+    const bgmCandidates = getAssetUrlCandidates("NES TITLE THEME SONG.mp3");
+    const initialSrc = bgmCandidates[0];
+    const bgm = new Audio(initialSrc);
     bgm.loop = true;
+    bgm.preload = "auto";
     bgm.volume = 0.45;
+    bgm.setAttribute("data-src", initialSrc);
     bgmRef.current = bgm;
 
     let interactionHandler = null;
-    bgm.play().catch(() => {
+    const playWithFallback = () => {
+      const currentSrc = bgm.getAttribute("data-src") || "";
+      const fallbackSrc =
+        bgmCandidates.find((candidate) => candidate !== currentSrc) || bgmCandidates[0];
+
+      return bgm.play().catch(() => {
+        if (fallbackSrc && fallbackSrc !== currentSrc) {
+          bgm.src = fallbackSrc;
+          bgm.setAttribute("data-src", fallbackSrc);
+          bgm.currentTime = 0;
+          return bgm.play().catch(() => {});
+        }
+        return Promise.resolve();
+      });
+    };
+
+    const onBgmEnded = () => {
+      // Backup loop path for browsers that occasionally ignore HTMLAudioElement.loop.
+      bgm.currentTime = 0;
+      playWithFallback();
+    };
+
+    bgm.addEventListener("ended", onBgmEnded);
+
+    playWithFallback().catch(() => {
       interactionHandler = () => {
-        bgm.play().catch(() => {});
+        playWithFallback().catch(() => {});
         window.removeEventListener("pointerdown", interactionHandler);
         window.removeEventListener("keydown", interactionHandler);
       };
@@ -956,6 +978,7 @@ export default function DungeonRollMiniGame({ onBack }) {
         window.removeEventListener("pointerdown", interactionHandler);
         window.removeEventListener("keydown", interactionHandler);
       }
+      bgm.removeEventListener("ended", onBgmEnded);
       bgm.pause();
       bgm.currentTime = 0;
       bgmRef.current = null;
