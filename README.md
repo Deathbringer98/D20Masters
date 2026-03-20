@@ -1,6 +1,6 @@
 # D20Masters 🎲
 
-D20 Dice website for table top games like D&D, MTG, and more.
+D20 Dice website for table top games like D&D, MTG, and (mini-game) Dungeon Roll.
 
 ## Dungeon Roll Update Notes (March 2026)
 
