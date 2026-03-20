@@ -120,7 +120,7 @@ export default function DungeonRollMiniGame({ onBack }) {
       totalKills: g.totalKills,
       totalWins: g.totalWins,
     });
-  }, []);
+  }, [menuState, audioVolume]);
 
   const persistMeta = useCallback(() => {
     if (typeof window === "undefined") return;
@@ -865,21 +865,12 @@ export default function DungeonRollMiniGame({ onBack }) {
       pushNotice("Shrine curse: you lost 1 life.");
     }
   }, [pushNotice, triggerFx]);
-        function rollDice(min, max) {
-          const g = gameRef.current;
-          if (g._autoNat20Buff) return 20;
-          return rand(min, max);
-        }
-      // ...existing code...
-    }
-
-    generateLevel();
-  }, [draw, generateLevel, pushNotice, resetCombatState, triggerFx, updateHud, updateMeta]);
+// ...existing code...
 
   const nextLevel = useCallback(() => {
     const g = gameRef.current;
     // Level skip potion effect
-    if (playerInventory.skip && !g._skipUsed && g.currentLevel < (g.maxLevels || maxLevels)) {
+    if (playerInventory.skip && !g._skipUsed && g.currentLevel < (g.maxLevels || MAX_LEVELS)) {
       g._skipUsed = true;
       setPlayerInventory(inv => ({ ...inv, skip: false }));
       pushNotice("Level Skip potion used! Skipping level.");
@@ -888,7 +879,7 @@ export default function DungeonRollMiniGame({ onBack }) {
       return;
     }
 
-    if (g.currentLevel >= MAX_LEVELS) {
+    if (g.currentLevel >= (g.maxLevels || MAX_LEVELS)) {
       g.victory = true;
       g.totalWins += 1;
       g.score += 100;
@@ -904,96 +895,8 @@ export default function DungeonRollMiniGame({ onBack }) {
   }, [draw, generateLevel, pushNotice, updateHud, updateMeta]);
 
   const startCombat = useCallback(
-    (enemy) => {
+    const movePlayer = useCallback((dx, dy) => {
       const g = gameRef.current;
-      if (g.inCombat || g.gameOver || g.victory) return;
-
-      g.inCombat = true;
-      g.currentCombatEnemy = enemy;
-      const baseRoll = rand(6, 14) + Math.floor(g.currentLevel / 4);
-      const elitePenalty = enemy.elite ? 1 : 0;
-      const bossPenalty = enemy.boss ? 2 : 0;
-      const blessingBonus = g.levelModifier?.id === "blessing" ? 2 : 0;
-      g.combatBonusUsed = g.nextRollBonus;
-      g.requiredRoll = clamp(
-        baseRoll + elitePenalty + bossPenalty - blessingBonus - g.combatBonusUsed,
-        4,
-        20
-      );
-      g.nextRollBonus = 0;
-      const enemyName = enemy.boss
-        ? "Boss"
-        : enemy.mimic
-        ? "Mimic"
-        : enemy.elite
-        ? "Elite monster"
-        : "Monster";
-
-      setCombat({
-        open: true,
-        message: `${enemyName}: roll ${g.requiredRoll}+ to win.${
-          enemy.boss ? ` Boss HP ${enemy.hp}.` : ""
-        }`,
-        result: "",
-        if (eventTile.type === "dragon" || (eventTile.type !== "dragon" && rand(1, 100) <= 25)) {
-          pushNotice("Event: You are sent to the dragon boss battle!");
-          // Boss room: open room, no walls
-          g.grid = Array.from({ length: GRID_SIZE }, () => Array.from({ length: GRID_SIZE }, () => FLOOR));
-          g.bossFight = true;
-          const bossX = Math.floor(GRID_SIZE / 2);
-          const bossY = Math.floor(GRID_SIZE / 2);
-          g.enemies = [
-            {
-              x: bossX,
-              y: bossY,
-              boss: true,
-              dragon: true,
-              hp: 10,
-              stepDelay: 2,
-              tick: 0,
-            }
-          ];
-          // Place player at a corner
-          g.player = { x: 1, y: 1 };
-          // Remove all events, key, shield, shrine, exit
-          g.events = [];
-          g.key = { x: -1, y: -1 };
-          g.shield = null;
-          g.shrine = null;
-          g.exitTile = { x: -1, y: -1 };
-           // Random shopkeeper spawn in boss room
-           if (rand(1, 100) <= 40) { // 40% chance
-             const shopX = rand(2, GRID_SIZE - 3);
-             const shopY = rand(2, GRID_SIZE - 3);
-             setShopkeeper({ x: shopX, y: shopY });
-             g.shopkeeper = { x: shopX, y: shopY };
-           } else {
-             setShopkeeper(null);
-             g.shopkeeper = null;
-           }
-          return;
-          // Draw shopkeeper in boss room
-          if (g.shopkeeper) {
-            const px = g.shopkeeper.x * TILE;
-            const py = g.shopkeeper.y * TILE;
-            ctx.fillStyle = "#2563eb";
-            ctx.fillRect(px + 8, py + 8, 32, 32);
-            ctx.fillStyle = "#fff";
-            ctx.fillRect(px + 20, py + 16, 8, 8);
-            ctx.fillStyle = "#0f172a";
-            ctx.fillRect(px + 16, py + 24, 16, 4);
-            ctx.fillStyle = "#38bdf8";
-            ctx.fillRect(px + 12, py + 12, 24, 8);
-          }
-            // Shopkeeper interaction in boss room
-            if (g.shopkeeper && g.player.x === g.shopkeeper.x && g.player.y === g.shopkeeper.y) {
-              setShopOpen(true);
-              setShopkeeper(null);
-              g.shopkeeper = null;
-              updateHud();
-              draw();
-              return;
-            }
       if (g.gameOver || g.victory || g.inCombat) return;
 
       const nx = g.player.x + dx;
@@ -1005,6 +908,7 @@ export default function DungeonRollMiniGame({ onBack }) {
 
       if (!g.hasKey && g.player.x === g.key.x && g.player.y === g.key.y) {
         g.hasKey = true;
+        pushNotice("You found the key.");
       }
 
       if (g.shield && g.player.x === g.shield.x && g.player.y === g.shield.y) {
@@ -1023,15 +927,12 @@ export default function DungeonRollMiniGame({ onBack }) {
         }
       }
 
-      const eventTile = g.events.find((tile) => tile.x === g.player.x && tile.y === g.player.y);
+      const eventTile = g.events.find(
+        (tile) => tile.x === g.player.x && tile.y === g.player.y
+      );
       if (eventTile) {
         resolveEventTile(eventTile, startCombat);
-        if (g.inCombat) {
-          updateHud();
-          draw();
-          return;
-        }
-        if (g.gameOver) {
+        if (g.inCombat || g.gameOver) {
           updateHud();
           draw();
           return;
@@ -1054,18 +955,56 @@ export default function DungeonRollMiniGame({ onBack }) {
       updateMeta();
       updateHud();
       draw();
-    },
-    [
+    }, [
       draw,
       isWalkable,
       nextLevel,
+      pushNotice,
       resolveEventTile,
       resolveShrine,
       startCombat,
       updateHud,
       updateMeta,
-      pushNotice,
-    ]
+    ]);
+    (enemy) => {
+      const g = gameRef.current;
+      if (g.inCombat || g.gameOver || g.victory) return;
+
+      g.inCombat = true;
+      g.currentCombatEnemy = enemy;
+
+      const baseRoll = rand(6, 14) + Math.floor(g.currentLevel / 4);
+      const elitePenalty = enemy.elite ? 1 : 0;
+      const bossPenalty = enemy.boss ? 2 : 0;
+      const blessingBonus = g.levelModifier?.id === "blessing" ? 2 : 0;
+
+      g.combatBonusUsed = g.nextRollBonus;
+      g.requiredRoll = clamp(
+        baseRoll + elitePenalty + bossPenalty - blessingBonus - g.combatBonusUsed,
+        4,
+        20
+      );
+      g.nextRollBonus = 0;
+
+      const enemyName = enemy.boss
+        ? "Boss"
+        : enemy.mimic
+        ? "Mimic"
+        : enemy.elite
+        ? "Elite monster"
+        : "Monster";
+
+      setCombat({
+        open: true,
+        message: `${enemyName}: roll ${g.requiredRoll}+ to win.${enemy.boss ? ` Boss HP ${enemy.hp}.` : ""}`,
+        result: "",
+        diceDisplay: "?"
+      });
+
+      updateHud();
+      draw();
+    },
+    [draw, updateHud]
   );
 
   const moveEnemies = useCallback(() => {
@@ -1129,41 +1068,47 @@ export default function DungeonRollMiniGame({ onBack }) {
   }, [draw, isWalkable, startCombat]);
 
   const resetGame = useCallback(() => {
-        // Shop spawn tracking
-        g.shopVisits = 0;
-        g.shopLevels = [];
-        // Determine shop spawn levels based on difficulty
-        if (difficulty === "easy") {
-          g.shopLevels = [rand(1, 5)];
-        } else if (difficulty === "medium") {
-          g.shopLevels = [rand(2, 10), rand(11, 20)];
-        } else if (difficulty === "hard") {
-          g.shopLevels = [rand(2, 15), rand(16, 30), rand(31, 45)];
-        }
-        // Open shop if current level matches shop spawn
-        if (gameRef.current.shopLevels && gameRef.current.shopLevels.includes(gameRef.current.currentLevel)) {
-          setShopOpen(true);
-        } else {
-          setShopOpen(false);
-        }
-    const g = gameRef.current;
-    g.currentLevel = 1;
-    g.lives = 3;
-    g.hasKey = false;
-    g.hasShield = false;
-    g.shieldCharges = 0;
-    g.streak = 0;
-    g.score = 0;
-    g.nextRollBonus = 0;
-    g.shield = null;
-    g.shrine = null;
-    g.events = [];
-    g.gameOver = false;
-    g.victory = false;
-    g.combatBonusUsed = 0;
-    pushNotice("A new quest begins.");
-    generateLevel();
-  }, [generateLevel, pushNotice]);
+  const g = gameRef.current;
+
+  g.shopVisits = 0;
+  g.shopLevels = [];
+
+  if (difficulty === "easy") {
+    g.maxLevels = 10;
+    g.shopLevels = [rand(1, 5)];
+  } else if (difficulty === "medium") {
+    g.maxLevels = 25;
+    g.shopLevels = [rand(2, 10), rand(11, 20)];
+  } else if (difficulty === "hard") {
+    g.maxLevels = 50;
+    g.shopLevels = [rand(2, 15), rand(16, 30), rand(31, 45)];
+  } else {
+    g.maxLevels = MAX_LEVELS;
+  }
+
+  setShopOpen(g.shopLevels.includes(1));
+
+  g.currentLevel = 1;
+  g.lives = 3;
+  g.hasKey = false;
+  g.hasShield = false;
+  g.shieldCharges = 0;
+  g.streak = 0;
+  g.score = 0;
+  g.nextRollBonus = 0;
+  g.shield = null;
+  g.shrine = null;
+  g.events = [];
+  g.gameOver = false;
+  g.victory = false;
+  g.combatBonusUsed = 0;
+  g._autoNat20Buff = false;
+  g._standingUsed = false;
+  g._skipUsed = false;
+
+  pushNotice("A new quest begins.");
+  generateLevel();
+}, [difficulty, generateLevel, pushNotice]);
 
   const handleRestartOverlayClick = useCallback(() => {
     const g = gameRef.current;
@@ -1743,7 +1688,7 @@ export default function DungeonRollMiniGame({ onBack }) {
             <div style={styles.panel}>
               <div style={styles.label}>Level</div>
               <div style={styles.value}>
-                {hud.level}/{maxLevels}
+                {hud.level}/{gameRef.current.maxLevels || MAX_LEVELS}
               </div>
             </div>
             {/* ...existing code for other panels... */}
