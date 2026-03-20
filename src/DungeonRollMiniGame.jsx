@@ -26,6 +26,55 @@ import {
 } from "./dungeonRoll/utils";
 
 export default function DungeonRollMiniGame({ onBack }) {
+          // Shopkeeper state for boss room
+          const [shopkeeper, setShopkeeper] = useState(null);
+        // Shop state
+        const [shopOpen, setShopOpen] = useState(false);
+        const [shopItems, setShopItems] = useState([
+          {
+            id: "vision",
+            name: "Potion of Vision",
+            desc: "Enhances vision in dark levels.",
+            price: 10,
+          },
+          {
+            id: "standing",
+            name: "Potion of Standing Position",
+            desc: "If consumed, prevents dungeon randomization after death (once).",
+            price: 15,
+          },
+          {
+            id: "skip",
+            name: "Potion of Level Skip",
+            desc: "Skip the current level (not usable on final level).",
+            price: 20,
+          },
+        ]);
+        const [playerInventory, setPlayerInventory] = useState({ vision: false, standing: false, skip: false });
+        const [shopkeeperSprite, setShopkeeperSprite] = useState(null); // Placeholder for pixel art
+      // Key rebind handler
+      useEffect(() => {
+        if (!rebindKey) return;
+        function handleKey(e) {
+          setKeyBindings(prev => ({ ...prev, [rebindKey]: e.key }));
+          setRebindKey(null);
+        }
+        window.addEventListener("keydown", handleKey);
+        return () => window.removeEventListener("keydown", handleKey);
+      }, [rebindKey]);
+    // Menu state
+    const [menuState, setMenuState] = useState("start"); // start, difficulty, options, game
+    const [difficulty, setDifficulty] = useState(null); // easy, medium, hard
+    const [audioVolume, setAudioVolume] = useState(0.45);
+    const [keyBindings, setKeyBindings] = useState({
+      up: "ArrowUp",
+      down: "ArrowDown",
+      left: "ArrowLeft",
+      right: "ArrowRight",
+      roll: "Space",
+    });
+    // For rebind UI
+    const [rebindKey, setRebindKey] = useState(null);
   const canvasRef = useRef(null);
   const rafRef = useRef(0);
   const rollerRef = useRef(0);
@@ -131,6 +180,8 @@ export default function DungeonRollMiniGame({ onBack }) {
     if (!ctx) return;
 
     const g = gameRef.current;
+    // Vision potion effect: enhance vision in dark levels
+    let visionActive = playerInventory.vision;
 
     function drawFloor(x, y) {
       const px = x * TILE;
@@ -164,9 +215,13 @@ export default function DungeonRollMiniGame({ onBack }) {
     function drawHero(x, y) {
       const px = x * TILE;
       const py = y * TILE;
+      // Color based on lives
+      let heroColor = "#38bdf8"; // blue (3+ lives)
+      if (gameRef.current.lives === 2) heroColor = "#facc15"; // yellow
+      if (gameRef.current.lives === 1) heroColor = "#fb923c"; // orange
       ctx.fillStyle = "#0f172a";
       ctx.fillRect(px + 12, py + 8, 24, 30);
-      ctx.fillStyle = "#38bdf8";
+      ctx.fillStyle = heroColor;
       ctx.fillRect(px + 16, py + 10, 16, 10);
       ctx.fillRect(px + 14, py + 20, 20, 12);
       ctx.fillRect(px + 10, py + 24, 6, 10);
@@ -183,6 +238,21 @@ export default function DungeonRollMiniGame({ onBack }) {
     function drawEnemy(x, y) {
       const px = x * TILE;
       const py = y * TILE;
+      // Dragon boss sprite
+      if (g.enemies && g.enemies.some(e => e.boss && e.dragon && e.x === x && e.y === y)) {
+        ctx.fillStyle = "#a21caf";
+        ctx.fillRect(px + 10, py + 10, 28, 28);
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(px + 22, py + 18, 8, 8);
+        ctx.fillStyle = "#f87171";
+        ctx.fillRect(px + 18, py + 30, 12, 6);
+        ctx.fillStyle = "#fde68a";
+        ctx.fillRect(px + 16, py + 16, 16, 8);
+        ctx.fillStyle = "#0f172a";
+        ctx.fillRect(px + 24, py + 24, 8, 4);
+        return;
+      }
+      // ...existing code for normal enemy...
       ctx.fillStyle = "#7f1d1d";
       ctx.fillRect(px + 12, py + 8, 24, 30);
       ctx.fillStyle = "#ef4444";
@@ -315,7 +385,10 @@ export default function DungeonRollMiniGame({ onBack }) {
     if (g.levelModifier?.id === "dark") {
       const centerX = g.player.x * TILE + TILE / 2;
       const centerY = g.player.y * TILE + TILE / 2;
-      const gradient = ctx.createRadialGradient(centerX, centerY, 48, centerX, centerY, 240);
+      // Default: very dark, only 2 tiles visible
+      // Potion: restores vision to previous default (240px)
+      const visionRadius = visionActive ? 240 : 48;
+      const gradient = ctx.createRadialGradient(centerX, centerY, visionActive ? 180 : 24, centerX, centerY, visionRadius);
       gradient.addColorStop(0, "rgba(2, 6, 23, 0)");
       gradient.addColorStop(1, "rgba(2, 6, 23, 0.85)");
       ctx.fillStyle = gradient;
@@ -492,8 +565,8 @@ export default function DungeonRollMiniGame({ onBack }) {
       }
 
       g.enemies = [];
-        const isBossFloor = g.currentLevel === MAX_LEVELS;
-        const enemyCount = isBossFloor ? 1 : Math.min(1 + g.currentLevel, 6);
+      const isBossFloor = g.currentLevel === (g.maxLevels || 10);
+      const enemyCount = isBossFloor ? 1 : Math.min(1 + g.currentLevel, 6);
       let placed = 0;
       let attempts = 0;
       const maxAttempts = 400;
@@ -647,6 +720,64 @@ export default function DungeonRollMiniGame({ onBack }) {
         return;
       }
 
+      // Random event tile: chance to trigger dragon boss battle or dark level
+      const randomRoll = rand(1, 100);
+      if (randomRoll <= 25) {
+        // 25% chance to trigger dragon boss
+        pushNotice("Event: You are sent to the dragon boss battle!");
+        // Spawn dragon boss in fixed room (center)
+        g.bossFight = true;
+        const bossX = Math.floor(GRID_SIZE / 2);
+        const bossY = Math.floor(GRID_SIZE / 2);
+        g.enemies.push({
+          x: bossX,
+          y: bossY,
+          boss: true,
+          dragon: true,
+          hp: 10,
+          stepDelay: 2,
+          tick: 0,
+        });
+        return;
+      } else if (randomRoll <= 45) {
+        // 20% chance to turn level dark
+        g.levelModifier = LEVEL_MODIFIERS.find(m => m.id === "dark");
+        pushNotice("Event: The dungeon is plunged into darkness!");
+        return;
+      } else if (randomRoll <= 60) {
+        // 15% chance to set player life to 1 and remove shield
+        g.lives = 1;
+        g.hasShield = false;
+        g.shield = null;
+        g.shieldCharges = 0;
+        pushNotice("Event: You are cursed! Life set to 1 and shield removed.");
+        return;
+      } else if (randomRoll <= 75) {
+        // 15% chance for auto nat 20 buff
+        g._autoNat20Buff = true;
+        pushNotice("Event: Divine blessing! All rolls are natural 20 and monsters cannot kill you this stage.");
+        return;
+      }
+
+      // Random event tile: chance to trigger dragon boss battle
+      if (eventTile.type === "dragon" || (eventTile.type !== "dragon" && rand(1, 100) <= 25)) {
+        // 25% chance for non-dragon event tile to trigger dragon boss
+        pushNotice("Event: You are sent to the dragon boss battle!");
+        g.bossFight = true;
+        const bossX = Math.floor(GRID_SIZE / 2);
+        const bossY = Math.floor(GRID_SIZE / 2);
+        g.enemies.push({
+          x: bossX,
+          y: bossY,
+          boss: true,
+          dragon: true,
+          hp: 10,
+          stepDelay: 2,
+          tick: 0,
+        });
+        return;
+      }
+
       const mimic = {
         x: g.player.x,
         y: g.player.y,
@@ -665,6 +796,21 @@ export default function DungeonRollMiniGame({ onBack }) {
 
   const hitPlayer = useCallback(() => {
     const g = gameRef.current;
+    // Auto nat 20 buff: monsters cannot kill player
+    if (g._autoNat20Buff) {
+      pushNotice("Buff: Divine blessing prevents monster damage!");
+      return;
+    }
+    // Standing position potion effect: prevent dungeon randomization after death
+    if (playerInventory.standing && !g._standingUsed) {
+      g._standingUsed = true;
+      setPlayerInventory(inv => ({ ...inv, standing: false }));
+      pushNotice("Standing Position potion used! Level will not randomize.");
+      // Do NOT call generateLevel(); keep current dungeon
+      updateHud();
+      draw();
+      return;
+    }
 
     if (g.hasShield) {
       g.shieldCharges = Math.max(0, g.shieldCharges - 1);
@@ -711,14 +857,19 @@ export default function DungeonRollMiniGame({ onBack }) {
     g.currentCombatEnemy = null;
     g.requiredRoll = 0;
     g.rolling = false;
-    g.combatBonusUsed = 0;
     triggerFx("hit");
-
-    resetCombatState();
-
     if (g.lives <= 0) {
       g.gameOver = true;
-      pushNotice("You were defeated.");
+      pushNotice("Shrine curse ended your quest.");
+    } else {
+      pushNotice("Shrine curse: you lost 1 life.");
+    }
+  }, [pushNotice, triggerFx]);
+        function rollDice(min, max) {
+          const g = gameRef.current;
+          if (g._autoNat20Buff) return 20;
+          return rand(min, max);
+        }
       updateMeta();
 
       updateHud();
@@ -731,6 +882,15 @@ export default function DungeonRollMiniGame({ onBack }) {
 
   const nextLevel = useCallback(() => {
     const g = gameRef.current;
+    // Level skip potion effect
+    if (playerInventory.skip && !g._skipUsed && g.currentLevel < (g.maxLevels || maxLevels)) {
+      g._skipUsed = true;
+      setPlayerInventory(inv => ({ ...inv, skip: false }));
+      pushNotice("Level Skip potion used! Skipping level.");
+      g.currentLevel += 1;
+      generateLevel();
+      return;
+    }
 
     if (g.currentLevel >= MAX_LEVELS) {
       g.victory = true;
@@ -779,22 +939,65 @@ export default function DungeonRollMiniGame({ onBack }) {
           enemy.boss ? ` Boss HP ${enemy.hp}.` : ""
         }`,
         result: "",
-        diceDisplay: "D20",
-        rolling: false,
-      });
-
-      if (g.combatBonusUsed > 0) {
-        pushNotice(`Battle focus used: +${g.combatBonusUsed} applied.`);
-      }
-
-      updateHud();
-    },
-    [pushNotice, updateHud]
-  );
-
-  const movePlayer = useCallback(
-    (dx, dy) => {
-      const g = gameRef.current;
+        if (eventTile.type === "dragon" || (eventTile.type !== "dragon" && rand(1, 100) <= 25)) {
+          pushNotice("Event: You are sent to the dragon boss battle!");
+          // Boss room: open room, no walls
+          g.grid = Array.from({ length: GRID_SIZE }, () => Array.from({ length: GRID_SIZE }, () => FLOOR));
+          g.bossFight = true;
+          const bossX = Math.floor(GRID_SIZE / 2);
+          const bossY = Math.floor(GRID_SIZE / 2);
+          g.enemies = [
+            {
+              x: bossX,
+              y: bossY,
+              boss: true,
+              dragon: true,
+              hp: 10,
+              stepDelay: 2,
+              tick: 0,
+            }
+          ];
+          // Place player at a corner
+          g.player = { x: 1, y: 1 };
+          // Remove all events, key, shield, shrine, exit
+          g.events = [];
+          g.key = { x: -1, y: -1 };
+          g.shield = null;
+          g.shrine = null;
+          g.exitTile = { x: -1, y: -1 };
+           // Random shopkeeper spawn in boss room
+           if (rand(1, 100) <= 40) { // 40% chance
+             const shopX = rand(2, GRID_SIZE - 3);
+             const shopY = rand(2, GRID_SIZE - 3);
+             setShopkeeper({ x: shopX, y: shopY });
+             g.shopkeeper = { x: shopX, y: shopY };
+           } else {
+             setShopkeeper(null);
+             g.shopkeeper = null;
+           }
+          return;
+          // Draw shopkeeper in boss room
+          if (g.shopkeeper) {
+            const px = g.shopkeeper.x * TILE;
+            const py = g.shopkeeper.y * TILE;
+            ctx.fillStyle = "#2563eb";
+            ctx.fillRect(px + 8, py + 8, 32, 32);
+            ctx.fillStyle = "#fff";
+            ctx.fillRect(px + 20, py + 16, 8, 8);
+            ctx.fillStyle = "#0f172a";
+            ctx.fillRect(px + 16, py + 24, 16, 4);
+            ctx.fillStyle = "#38bdf8";
+            ctx.fillRect(px + 12, py + 12, 24, 8);
+          }
+            // Shopkeeper interaction in boss room
+            if (g.shopkeeper && g.player.x === g.shopkeeper.x && g.player.y === g.shopkeeper.y) {
+              setShopOpen(true);
+              setShopkeeper(null);
+              g.shopkeeper = null;
+              updateHud();
+              draw();
+              return;
+            }
       if (g.gameOver || g.victory || g.inCombat) return;
 
       const nx = g.player.x + dx;
@@ -885,22 +1088,38 @@ export default function DungeonRollMiniGame({ onBack }) {
       if (enemy.tick < enemy.stepDelay) continue;
       enemy.tick = 0;
 
-      const options = dirs
-        .map(([dx, dy]) => ({ x: enemy.x + dx, y: enemy.y + dy }))
-        .filter(
-          (pos) =>
-            isWalkable(pos.x, pos.y) &&
-            !(pos.x === g.exitTile.x && pos.y === g.exitTile.y) &&
-            !(pos.x === g.key.x && pos.y === g.key.y) &&
-            !(g.shield && pos.x === g.shield.x && pos.y === g.shield.y) &&
-            !(g.shrine && pos.x === g.shrine.x && pos.y === g.shrine.y) &&
-            !g.events.some((tile) => tile.x === pos.x && tile.y === pos.y)
-        );
-
-      if (options.length) {
-        const next = options[rand(0, options.length - 1)];
-        enemy.x = next.x;
-        enemy.y = next.y;
+      // Dragon boss chase logic
+      if (enemy.boss && enemy.dragon) {
+        // Move towards player
+        let dx = 0, dy = 0;
+        if (enemy.x < g.player.x) dx = 1;
+        else if (enemy.x > g.player.x) dx = -1;
+        if (enemy.y < g.player.y) dy = 1;
+        else if (enemy.y > g.player.y) dy = -1;
+        const nx = enemy.x + dx;
+        const ny = enemy.y + dy;
+        if (isWalkable(nx, ny)) {
+          enemy.x = nx;
+          enemy.y = ny;
+        }
+      } else {
+        // Normal enemy wander
+        const options = dirs
+          .map(([dx, dy]) => ({ x: enemy.x + dx, y: enemy.y + dy }))
+          .filter(
+            (pos) =>
+              isWalkable(pos.x, pos.y) &&
+              !(pos.x === g.exitTile.x && pos.y === g.exitTile.y) &&
+              !(pos.x === g.key.x && pos.y === g.key.y) &&
+              !(g.shield && pos.x === g.shield.x && pos.y === g.shield.y) &&
+              !(g.shrine && pos.x === g.shrine.x && pos.y === g.shrine.y) &&
+              !g.events.some((tile) => tile.x === pos.x && tile.y === pos.y)
+          );
+        if (options.length) {
+          const next = options[rand(0, options.length - 1)];
+          enemy.x = next.x;
+          enemy.y = next.y;
+        }
       }
 
       if (enemy.x === g.player.x && enemy.y === g.player.y) {
@@ -914,6 +1133,23 @@ export default function DungeonRollMiniGame({ onBack }) {
   }, [draw, isWalkable, startCombat]);
 
   const resetGame = useCallback(() => {
+        // Shop spawn tracking
+        g.shopVisits = 0;
+        g.shopLevels = [];
+        // Determine shop spawn levels based on difficulty
+        if (difficulty === "easy") {
+          g.shopLevels = [rand(1, 5)];
+        } else if (difficulty === "medium") {
+          g.shopLevels = [rand(2, 10), rand(11, 20)];
+        } else if (difficulty === "hard") {
+          g.shopLevels = [rand(2, 15), rand(16, 30), rand(31, 45)];
+        }
+        // Open shop if current level matches shop spawn
+        if (gameRef.current.shopLevels && gameRef.current.shopLevels.includes(gameRef.current.currentLevel)) {
+          setShopOpen(true);
+        } else {
+          setShopOpen(false);
+        }
     const g = gameRef.current;
     g.currentLevel = 1;
     g.lives = 3;
@@ -998,15 +1234,18 @@ export default function DungeonRollMiniGame({ onBack }) {
 
       if (finalRoll === 20) {
         const enemy = g.currentCombatEnemy;
+        let bossDefeated = false;
         if (enemy?.boss && enemy.hp > 1) {
           enemy.hp -= 2;
           if (enemy.hp <= 0) {
             g.enemies = g.enemies.filter((mob) => mob !== enemy);
             g.totalKills += 1;
+            bossDefeated = true;
           }
         } else {
           g.enemies = g.enemies.filter((mob) => mob !== enemy);
           g.totalKills += 1;
+          if (enemy?.boss) bossDefeated = true;
         }
 
         g.streak += 1;
@@ -1029,12 +1268,17 @@ export default function DungeonRollMiniGame({ onBack }) {
         setCombat((prev) => ({
           ...prev,
           rolling: false,
-          result: "Critical hit. Monster destroyed.",
+          result: bossDefeated ? "Critical hit. Dragon boss defeated!" : "Critical hit. Monster destroyed.",
         }));
 
         window.setTimeout(() => {
           resetCombatState();
           draw();
+          if (bossDefeated) {
+            pushNotice("You defeated the dragon boss! Teleporting to the next level...");
+            g.bossFight = false;
+            nextLevel();
+          }
         }, 650);
         return;
       }
@@ -1052,6 +1296,7 @@ export default function DungeonRollMiniGame({ onBack }) {
 
       if (finalRoll >= g.requiredRoll) {
         const enemy = g.currentCombatEnemy;
+        let bossDefeated = false;
         if (enemy?.boss && enemy.hp > 1) {
           enemy.hp -= 1;
           g.inCombat = true;
@@ -1072,6 +1317,7 @@ export default function DungeonRollMiniGame({ onBack }) {
 
         g.enemies = g.enemies.filter((mob) => mob !== enemy);
         g.totalKills += 1;
+        if (enemy?.boss) bossDefeated = true;
         g.streak += 1;
         g.score += enemy?.boss ? 40 : enemy?.elite ? 20 : 10;
         if (g.streak > 0 && g.streak % 3 === 0) {
@@ -1091,12 +1337,17 @@ export default function DungeonRollMiniGame({ onBack }) {
         setCombat((prev) => ({
           ...prev,
           rolling: false,
-          result: `You rolled ${finalRoll}. Monster killed.`,
+          result: bossDefeated ? `You rolled ${finalRoll}. Dragon boss defeated!` : `You rolled ${finalRoll}. Monster killed.`,
         }));
 
         window.setTimeout(() => {
           resetCombatState();
           draw();
+          if (bossDefeated) {
+            pushNotice("You defeated the dragon boss! Teleporting to the next level...");
+            g.bossFight = false;
+            nextLevel();
+          }
         }, 650);
         return;
       }
@@ -1221,72 +1472,36 @@ export default function DungeonRollMiniGame({ onBack }) {
   }, [handleRoll, moveEnemies, movePlayer, resetGame]);
 
   useEffect(() => {
-    const playlist = [
-      getAssetUrlCandidates("NES TITLE THEME SONG.mp3"),
-      getAssetUrlCandidates("TempleOS theme Remix.mp3"),
-    ];
-    let trackIndex = 0;
-    const initialSrc = playlist[trackIndex][0];
-    const bgm = new Audio(initialSrc);
-    bgm.loop = false;
-    bgm.preload = "auto";
-    bgm.volume = 0.45;
-    bgm.setAttribute("data-src", initialSrc);
-    bgm.setAttribute("data-track-index", String(trackIndex));
-    bgmRef.current = bgm;
-
-    let interactionHandler = null;
-    const playTrack = (nextTrackIndex = trackIndex) => {
-      const candidates = playlist[nextTrackIndex] || playlist[0];
-      const currentSrc = bgm.getAttribute("data-src") || "";
-      const preferredSrc = candidates[0];
-      const fallbackSrc = candidates.find((candidate) => candidate !== currentSrc) || candidates[0];
-
-      trackIndex = nextTrackIndex;
-      if (bgm.src !== preferredSrc && currentSrc !== preferredSrc) {
-        bgm.src = preferredSrc;
-        bgm.setAttribute("data-src", preferredSrc);
-      }
-      bgm.setAttribute("data-track-index", String(trackIndex));
-      bgm.currentTime = 0;
-
-      return bgm.play().catch(() => {
-        if (fallbackSrc && fallbackSrc !== preferredSrc) {
-          bgm.src = fallbackSrc;
-          bgm.setAttribute("data-src", fallbackSrc);
-          bgm.currentTime = 0;
-          return bgm.play().catch(() => {});
-        }
-        return Promise.resolve();
-      });
-    };
-
-    const onBgmEnded = () => {
-      const nextTrackIndex = (trackIndex + 1) % playlist.length;
-      playTrack(nextTrackIndex).catch(() => {});
-    };
-
-    bgm.addEventListener("ended", onBgmEnded);
-
-    playTrack(trackIndex).catch(() => {
-      interactionHandler = () => {
-        playTrack(trackIndex).catch(() => {});
-        window.removeEventListener("pointerdown", interactionHandler);
-        window.removeEventListener("keydown", interactionHandler);
-      };
-
-      window.addEventListener("pointerdown", interactionHandler, { once: true });
-      window.addEventListener("keydown", interactionHandler, { once: true });
-    });
-
+    // Menu and game music
+    let menuMusic = null;
+    let gameMusic = null;
+    // Play menu music when menuState is not 'game'
+    if (menuState !== "game") {
+      menuMusic = new Audio(getAssetUrlCandidates("menu-theme.mp3")[0]);
+      menuMusic.loop = true;
+      menuMusic.preload = "auto";
+      menuMusic.volume = audioVolume;
+      menuMusic.play().catch(() => {});
+      bgmRef.current = menuMusic;
+    }
+    // Play game music when menuState is 'game'
+    if (menuState === "game") {
+      gameMusic = new Audio(getAssetUrlCandidates("dice-roll.mp3")[0]);
+      gameMusic.loop = true;
+      gameMusic.preload = "auto";
+      gameMusic.volume = audioVolume;
+      gameMusic.play().catch(() => {});
+      bgmRef.current = gameMusic;
+    }
     return () => {
-      if (interactionHandler) {
-        window.removeEventListener("pointerdown", interactionHandler);
-        window.removeEventListener("keydown", interactionHandler);
+      if (menuMusic) {
+        menuMusic.pause();
+        menuMusic.currentTime = 0;
       }
-      bgm.removeEventListener("ended", onBgmEnded);
-      bgm.pause();
-      bgm.currentTime = 0;
+      if (gameMusic) {
+        gameMusic.pause();
+        gameMusic.currentTime = 0;
+      }
       bgmRef.current = null;
     };
   }, []);
@@ -1355,185 +1570,219 @@ export default function DungeonRollMiniGame({ onBack }) {
 
   return (
     <div style={styles.page}>
-      <div style={styles.shell}>
-        <div style={styles.titlebar}>
-          <div>
-            <div style={styles.logo}>Dungeon Roll</div>
-            <div style={styles.subtitle}>NES-style browser mini-game from D20Masters.ink</div>
-          </div>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <button style={{ ...styles.btn, width: "auto", minWidth: 150 }} onClick={onBack}>
-              Back
-            </button>
-            <button style={{ ...styles.btn, width: "auto", minWidth: 190 }} onClick={resetGame}>
-              Restart Quest
-            </button>
-          </div>
-        </div>
-
-        <div
-          style={{
-            ...styles.hud,
-            gridTemplateColumns: isMobile ? "repeat(2, minmax(0, 1fr))" : styles.hud.gridTemplateColumns,
-          }}
-        >
-          <div style={styles.panel}>
-            <div style={styles.label}>Level</div>
-            <div style={styles.value}>
-              {hud.level}/{MAX_LEVELS}
+      {/* Shop Overlay */}
+      {shopOpen && (
+        <div style={{ ...styles.modal, zIndex: 2000 }}>
+          <div style={{
+            background: "linear-gradient(180deg, #1e293b, #2563eb 90%)",
+            border: "4px solid #38bdf8",
+            boxShadow: "0 0 32px 12px #38bdf8, 0 0 64px 24px #60a5fa",
+            padding: "32px",
+            borderRadius: "18px",
+            width: 420,
+            textAlign: "center",
+            fontFamily: '"Courier New", monospace',
+            color: "#fff",
+            position: "relative",
+            animation: "glowPulse 1.8s infinite alternate",
+          }}>
+            {/* Shopkeeper pixel art placeholder */}
+            <div style={{ marginBottom: 18 }}>
+              <div style={{
+                width: 64,
+                height: 64,
+                margin: "0 auto",
+                background: "#fff",
+                borderRadius: 8,
+                boxShadow: "0 0 8px #38bdf8",
+                position: "relative",
+                display: "inline-block",
+              }}>
+                {/* Blue pixel hat */}
+                <div style={{
+                  width: 48,
+                  height: 18,
+                  background: "#2563eb",
+                  position: "absolute",
+                  top: 0,
+                  left: 8,
+                  borderRadius: 4,
+                  boxShadow: "0 2px 8px #60a5fa",
+                }} />
+                {/* Eyes */}
+                <div style={{ width: 8, height: 8, background: "#0f172a", position: "absolute", top: 28, left: 16, borderRadius: 2 }} />
+                <div style={{ width: 8, height: 8, background: "#0f172a", position: "absolute", top: 28, left: 40, borderRadius: 2 }} />
+                {/* Smile */}
+                <div style={{ width: 24, height: 4, background: "#2563eb", position: "absolute", top: 48, left: 20, borderRadius: 2 }} />
+              </div>
+              <div style={{ fontSize: 18, color: "#38bdf8", marginTop: 8 }}>Shopkeeper</div>
             </div>
-          </div>
-          <div style={styles.panel}>
-            <div style={styles.label}>Lives</div>
-            <div style={styles.value}>{hud.lives}</div>
-          </div>
-          <div style={styles.panel}>
-            <div style={styles.label}>Key</div>
-            <div style={styles.value}>{hud.keyStatus}</div>
-          </div>
-          <div style={styles.panel}>
-            <div style={styles.label}>Chan's Shield</div>
-            <div style={styles.value}>{hud.shieldStatus}</div>
-          </div>
-          <div style={styles.panel}>
-            <div style={styles.label}>Monsters</div>
-            <div style={styles.value}>{hud.monsterCount}</div>
-          </div>
-          <div style={styles.panel}>
-            <div style={styles.label}>Streak</div>
-            <div style={styles.value}>{hud.streak}</div>
-          </div>
-          <div style={styles.panel}>
-            <div style={styles.label}>Score</div>
-            <div style={styles.value}>{hud.score}</div>
-          </div>
-          <div style={styles.panel}>
-            <div style={styles.label}>Floor Mod</div>
-            <div style={{ ...styles.value, fontSize: 16 }}>{hud.modifier}</div>
-          </div>
-          <div style={styles.panel}>
-            <div style={styles.label}>Roll Bonus</div>
-            <div style={styles.value}>{hud.nextBonus > 0 ? `+${hud.nextBonus}` : "No"}</div>
-          </div>
-          <div style={styles.panel}>
-            <div style={styles.label}>State</div>
-            <div style={styles.value}>{hud.state}</div>
+            <div style={{ fontSize: 24, fontWeight: 700, marginBottom: 12 }}>Welcome to the NES Shop!</div>
+            <div style={{ fontSize: 16, marginBottom: 18 }}>Choose one item to buy:</div>
+            <div style={{ display: "grid", gap: 18 }}>
+              {shopItems.map(item => (
+                <div key={item.id} style={{
+                  background: "#0f172a",
+                  border: "2px solid #38bdf8",
+                  borderRadius: 8,
+                  padding: "14px 10px",
+                  boxShadow: "0 0 8px #2563eb",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  fontSize: 16,
+                }}>
+                  <div style={{ fontWeight: 700, color: "#fff", fontSize: 18 }}>{item.name}</div>
+                  <div style={{ color: "#cbd5e1", fontSize: 14, margin: "6px 0 10px 0" }}>{item.desc}</div>
+                  <button
+                    style={{ ...styles.btn, width: 180, fontSize: 16, margin: 0 }}
+                    disabled={playerInventory[item.id] || playerInventory._shopBought}
+                    onClick={() => {
+                      setPlayerInventory(inv => ({ ...inv, [item.id]: true, _shopBought: true }));
+                      setShopOpen(false);
+                    }}
+                  >
+                    {playerInventory[item.id] ? "Purchased" : "Buy"}
+                  </button>
+                </div>
+              ))}
+            </div>
+            <button style={{ ...styles.btn, width: 180, fontSize: 16, marginTop: 24 }} onClick={() => setShopOpen(false)}>Leave Shop</button>
           </div>
         </div>
+      )}
+      {/* Start Menu */}
+      {menuState === "start" && (
+        <div style={{ ...styles.shell, justifyContent: "center", alignItems: "center", minHeight: "100vh" }}>
+          <div style={styles.menuOverlay}>
+            <div style={{ ...styles.logo, fontSize: 64, marginBottom: 16 }}>Dungeon Roll</div>
+            <div style={{ ...styles.subtitle, fontSize: 24, marginBottom: 32 }}>NES-style browser mini-game</div>
+            <button style={{ ...styles.btn, fontSize: 28, margin: 12 }} onClick={() => setMenuState("difficulty")}>Start</button>
+            <button style={{ ...styles.btn, fontSize: 28, margin: 12 }} onClick={() => setMenuState("options")}>Options</button>
+            <button style={{ ...styles.btn, fontSize: 28, margin: 12 }} onClick={() => window.location.href = "/"}>Exit</button>
+          </div>
+        </div>
+      )}
 
-        <div
-          style={{
-            ...styles.main,
-            gridTemplateColumns: isMobile ? "1fr" : styles.main.gridTemplateColumns,
-          }}
-        >
-          <div style={styles.gameFrame}>
-            <canvas ref={canvasRef} width={768} height={768} style={styles.canvas} />
-            {hud.state === "Defeated" || hud.state === "Victory" ? (
-              <div
-                role="button"
-                aria-label="Restart quest"
-                style={styles.restartOverlayHitArea}
-                onClick={handleRestartOverlayClick}
+      {/* Options Menu */}
+      {menuState === "options" && (
+        <div style={{ ...styles.shell, justifyContent: "center", alignItems: "center", minHeight: "100vh" }}>
+          <div style={{ ...styles.menuOverlay, maxWidth: 480, margin: "auto" }}>
+            <div style={{ ...styles.logo, fontSize: 48, marginBottom: 16 }}>Options</div>
+            <div style={{ margin: "24px 0" }}>
+              <label style={{ fontSize: 20, marginBottom: 8, display: "block" }}>Audio Volume</label>
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={0.01}
+                value={audioVolume}
+                onChange={e => setAudioVolume(Number(e.target.value))}
+                style={{ width: 300 }}
               />
-            ) : null}
-            <div style={styles.footerHint}>
-              Move with WASD or Arrow Keys. Get the key. Reach the door. Roll to survive.
+              <div style={{ fontSize: 16, marginTop: 4 }}>{Math.round(audioVolume * 100)}%</div>
             </div>
-            <div style={styles.noticeText}>{notice}</div>
+            <div style={{ margin: "24px 0" }}>
+              <label style={{ fontSize: 20, marginBottom: 8, display: "block" }}>Key Bindings</label>
+              {Object.entries(keyBindings).map(([action, key]) => (
+                <div key={action} style={{ margin: "8px 0", fontSize: 16 }}>
+                  <span style={{ fontWeight: "bold" }}>{action.charAt(0).toUpperCase() + action.slice(1)}:</span>
+                  {rebindKey === action ? (
+                    <span style={{ marginLeft: 8, color: "#38bdf8" }}>Press any key...</span>
+                  ) : (
+                    <span style={{ marginLeft: 8 }}>{key}</span>
+                  )}
+                  <button style={{ ...styles.btn, fontSize: 14, marginLeft: 12 }} onClick={() => setRebindKey(action)}>Rebind</button>
+                </div>
+              ))}
+              {rebindKey && (
+                <div style={{ fontSize: 14, color: "#ef4444", marginTop: 8 }}>
+                  Press a key to set binding for <b>{rebindKey}</b>
+                </div>
+              )}
+            </div>
+            <button style={{ ...styles.btn, fontSize: 20, margin: 12 }} onClick={() => { setMenuState("start"); setRebindKey(null); }}>Back</button>
+          </div>
+        </div>
+      )}
+
+      {/* Difficulty Menu */}
+      {menuState === "difficulty" && (
+        <div style={{ ...styles.shell, justifyContent: "center", alignItems: "center", minHeight: "100vh" }}>
+          <div style={styles.menuOverlay}>
+            <div style={{ ...styles.logo, fontSize: 48, marginBottom: 16 }}>Select Difficulty</div>
+            <button style={{ ...styles.btn, fontSize: 24, margin: 12 }} onClick={() => { setDifficulty("easy"); setMenuState("game"); }}>Easy (10 Levels)</button>
+            <button style={{ ...styles.btn, fontSize: 24, margin: 12 }} onClick={() => { setDifficulty("medium"); setMenuState("game"); }}>Medium (25 Levels)</button>
+            <button style={{ ...styles.btn, fontSize: 24, margin: 12 }} onClick={() => { setDifficulty("hard"); setMenuState("game"); }}>Hard (50 Levels)</button>
+            <button style={{ ...styles.btn, fontSize: 20, margin: 12 }} onClick={() => setMenuState("start")}>Back</button>
+          </div>
+        </div>
+      )}
+
+      {/* Game UI */}
+      {menuState === "game" && (
+        <div style={styles.shell}>
+          <div style={styles.titlebar}>
+            <div>
+              <div style={styles.logo}>Dungeon Roll</div>
+              <div style={styles.subtitle}>NES-style browser mini-game from D20Masters.ink</div>
+            </div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <button style={{ ...styles.btn, width: "auto", minWidth: 150 }} onClick={onBack}>
+                Back
+              </button>
+              <button style={{ ...styles.btn, width: "auto", minWidth: 190 }} onClick={() => setMenuState("start")}>Main Menu</button>
+              <button style={{ ...styles.btn, width: "auto", minWidth: 190 }} onClick={resetGame}>
+                Restart Quest
+              </button>
+            </div>
           </div>
 
-          <div style={styles.sidebar}>
+          <div
+            style={{
+              ...styles.hud,
+              gridTemplateColumns: isMobile ? "repeat(2, minmax(0, 1fr))" : styles.hud.gridTemplateColumns,
+            }}
+          >
             <div style={styles.panel}>
-              <div style={styles.label}>How To Play</div>
-              <p style={styles.rulesText}>
-                You are the blue hero. Each dungeon is randomly generated. Find the gold key, then
-                reach the green exit door. Touching a monster starts D20 combat.
-              </p>
-              <ul style={{ margin: "8px 0 0 18px", padding: 0 }}>
-                <li style={styles.rulesText}>Beat 10 levels to win.</li>
-                <li style={styles.rulesText}>Fail a combat roll and you lose a life.</li>
-                <li style={styles.rulesText}>Roll high enough to kill the monster.</li>
-                <li style={styles.rulesText}>Natural 20 is a critical kill.</li>
-                <li style={styles.rulesText}>Natural 1 is instant death.</li>
-                <li style={styles.rulesText}>Some levels spawn Chan's Shield, which blocks two monster hits.</li>
-                <li style={styles.rulesText}>Every 3rd level has an elite monster. Level 10 has a 3-HP boss.</li>
-                <li style={styles.rulesText}>Clear all monsters for a Perfect Clear: key auto-unlocks and +50 score.</li>
-                <li style={styles.rulesText}>Shrines can bless or curse. Event tiles add random surprises.</li>
-              </ul>
-            </div>
-
-            <div style={styles.panel}>
-              <div style={styles.label}>Records</div>
-              <div style={styles.rulesText}>Best level: {hud.bestLevel}</div>
-              <div style={styles.rulesText}>Best streak: {hud.bestStreak}</div>
-              <div style={styles.rulesText}>Best score: {hud.bestScore}</div>
-              <div style={styles.rulesText}>Total kills: {hud.totalKills}</div>
-              <div style={styles.rulesText}>Total wins: {hud.totalWins}</div>
-            </div>
-
-            <div style={styles.panel}>
-              <div style={styles.label}>Legend</div>
-              <div style={styles.legend}>
-                <div style={styles.legendItem}>
-                  <span style={{ ...styles.swatch, background: "#38bdf8" }} /> Hero
-                </div>
-                <div style={styles.legendItem}>
-                  <span style={{ ...styles.swatch, background: "#ef4444" }} /> Monster
-                </div>
-                <div style={styles.legendItem}>
-                  <span style={{ ...styles.swatch, background: "#facc15" }} /> Key
-                </div>
-                <div style={styles.legendItem}>
-                  <span style={{ ...styles.swatch, background: "#38bdf8" }} /> Chan's Shield
-                </div>
-                <div style={styles.legendItem}>
-                  <span style={{ ...styles.swatch, background: "#22c55e" }} /> Exit
-                </div>
-                <div style={styles.legendItem}>
-                  <span style={{ ...styles.swatch, background: "#7c3aed" }} /> Shrine
-                </div>
-                <div style={styles.legendItem}>
-                  <span style={{ ...styles.swatch, background: "#06b6d4" }} /> Teleport Trap
-                </div>
-                <div style={styles.legendItem}>
-                  <span style={{ ...styles.swatch, background: "#f59e0b" }} /> Treasure Chest
-                </div>
-                <div style={styles.legendItem}>
-                  <span style={{ ...styles.swatch, background: "#dc2626" }} /> Mimic Event
-                </div>
-                <div style={styles.legendItem}>
-                  <span style={{ ...styles.swatch, background: "#22c55e" }} /> Healing Fountain
-                </div>
-                <div style={styles.legendItem}>
-                  <span style={{ ...styles.swatch, background: "#64748b" }} /> Wall
-                </div>
-                <div style={styles.legendItem}>
-                  <span style={{ ...styles.swatch, background: "#1f2937" }} /> Floor
-                </div>
+              <div style={styles.label}>Level</div>
+              <div style={styles.value}>
+                {hud.level}/{maxLevels}
               </div>
             </div>
+            {/* ...existing code for other panels... */}
           </div>
+          {/* ...existing code for main, sidebar, etc... */}
         </div>
-      </div>
+      )}
 
-      {combat.open ? (
+      {combat.open && menuState === "game" ? (
+        // ...existing code...
         <div style={styles.modal}>
-          <div style={styles.combatCard}>
-            <div style={styles.combatTitle}>D20 Combat</div>
-            <div style={styles.combatText}>{combat.message}</div>
-            <div style={styles.diceBox}>{combat.diceDisplay}</div>
-            <button
-              style={{ ...styles.btn, opacity: combat.rolling ? 0.7 : 1 }}
-              onClick={handleRoll}
-              disabled={combat.rolling}
-            >
-              Roll Die
-            </button>
-            <div style={styles.resultText}>{combat.result}</div>
-          </div>
+          // ...existing code...
         </div>
       ) : null}
-    </div>
+    {/* Buy Me a Coffee button, always visible bottom right */}
+    <a
+      href="https://www.buymeacoffee.com/yourusername" target="_blank" rel="noopener noreferrer"
+      style={{
+        position: "fixed",
+        bottom: 24,
+        right: 24,
+        zIndex: 9999,
+        background: "#ffdd00",
+        color: "#333",
+        borderRadius: 8,
+        boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+        padding: "12px 24px",
+        fontWeight: "bold",
+        fontSize: 18,
+        textDecoration: "none",
+        transition: "background 0.2s",
+        border: "2px solid #fff",
+      }}
+    >
+      ☕ Buy Me a Coffee
+    </a>
   );
 }

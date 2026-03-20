@@ -145,7 +145,7 @@ export default function App() {
           onClick={() => setPageAndPath("dungeon-roll")}
           style={tabBtn(page === "dungeon-roll")}
         >
-          Dungeon Roll (mini-game)
+         🐲 Dungeon Roll (mini-game)
         </button>
       </div>
       <D20DiceRoller onLegalClick={() => setPageAndPath("legal")} />
