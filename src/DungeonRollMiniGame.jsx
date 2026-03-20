@@ -29,6 +29,8 @@ export default function DungeonRollMiniGame({ onBack }) {
   const canvasRef = useRef(null);
   const rafRef = useRef(0);
   const rollerRef = useRef(0);
+  const fastRollResolverRef = useRef(null);
+  const lastSpaceTapRef = useRef(0);
   const bgmRef = useRef(null);
   const rollSfxRef = useRef(null);
   const killSfxRef = useRef(null);
@@ -937,9 +939,16 @@ export default function DungeonRollMiniGame({ onBack }) {
     resetGame();
   }, [resetGame]);
 
-  const handleRoll = useCallback(() => {
+  const handleRoll = useCallback((skipAnimation = false) => {
     const g = gameRef.current;
-    if (!g.inCombat || g.rolling || !g.currentCombatEnemy) return;
+    if (!g.inCombat || !g.currentCombatEnemy) return;
+
+    if (g.rolling) {
+      if (skipAnimation && fastRollResolverRef.current) {
+        fastRollResolverRef.current();
+      }
+      return;
+    }
 
     const rollSfx = rollSfxRef.current;
     if (rollSfx) {
@@ -983,20 +992,8 @@ export default function DungeonRollMiniGame({ onBack }) {
         });
     };
 
-    g.rolling = true;
-    setCombat((prev) => ({ ...prev, rolling: true, result: "Rolling..." }));
-
-    let ticks = 0;
-    rollerRef.current = window.setInterval(() => {
-      const rollingFace = rand(1, 20);
-      setCombat((prev) => ({ ...prev, diceDisplay: String(rollingFace) }));
-      ticks += 1;
-
-      if (ticks < 14) return;
-
-      window.clearInterval(rollerRef.current);
-
-      const finalRoll = rand(1, 20);
+    const resolveFinalRoll = (finalRoll) => {
+      fastRollResolverRef.current = null;
       setCombat((prev) => ({ ...prev, diceDisplay: String(finalRoll) }));
 
       if (finalRoll === 20) {
@@ -1111,6 +1108,31 @@ export default function DungeonRollMiniGame({ onBack }) {
       }));
       g.rolling = false;
       window.setTimeout(() => hitPlayer(), 700);
+    };
+
+    g.rolling = true;
+    setCombat((prev) => ({ ...prev, rolling: true, result: "Rolling..." }));
+
+    fastRollResolverRef.current = () => {
+      window.clearInterval(rollerRef.current);
+      resolveFinalRoll(rand(1, 20));
+    };
+
+    if (skipAnimation) {
+      fastRollResolverRef.current();
+      return;
+    }
+
+    let ticks = 0;
+    rollerRef.current = window.setInterval(() => {
+      const rollingFace = rand(1, 20);
+      setCombat((prev) => ({ ...prev, diceDisplay: String(rollingFace) }));
+      ticks += 1;
+
+      if (ticks < 14) return;
+
+      window.clearInterval(rollerRef.current);
+      resolveFinalRoll(rand(1, 20));
     }, 85);
   }, [
     applyLootDrop,
@@ -1149,7 +1171,10 @@ export default function DungeonRollMiniGame({ onBack }) {
     function onKeyDown(e) {
       if (e.code === "Space" || e.key === " ") {
         e.preventDefault();
-        handleRoll();
+        const now = typeof window !== "undefined" && window.performance ? window.performance.now() : Date.now();
+        const isDoubleTap = now - lastSpaceTapRef.current <= 280;
+        lastSpaceTapRef.current = now;
+        handleRoll(isDoubleTap);
         return;
       }
 
@@ -1191,6 +1216,7 @@ export default function DungeonRollMiniGame({ onBack }) {
       window.removeEventListener("keydown", onKeyDown);
       window.cancelAnimationFrame(rafRef.current);
       window.clearInterval(rollerRef.current);
+      fastRollResolverRef.current = null;
     };
   }, [handleRoll, moveEnemies, movePlayer, resetGame]);
 
