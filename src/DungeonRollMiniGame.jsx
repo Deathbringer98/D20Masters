@@ -449,14 +449,13 @@ export default function DungeonRollMiniGame({ onBack }) {
       carveSimpleDungeon();
       const used = new Set();
 
-      g.player = randomFloorCell(used);
-      used.add(coordKey(g.player.x, g.player.y));
+      g.exitTile = randomFloorCell(used);
+      used.add(coordKey(g.exitTile.x, g.exitTile.y));
+
+      g.player = { x: g.exitTile.x, y: g.exitTile.y };
 
       g.key = randomFloorCell(used);
       used.add(coordKey(g.key.x, g.key.y));
-
-      g.exitTile = randomFloorCell(used);
-      used.add(coordKey(g.exitTile.x, g.exitTile.y));
 
       if (!reachable(g.player, g.key) || !reachable(g.key, g.exitTile)) continue;
 
