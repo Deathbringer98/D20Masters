@@ -1,247 +1,29 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-
-const GRID_SIZE = 16;
-const TILE = 48;
-const FLOOR = 0;
-const WALL = 1;
-const MAX_LEVELS = 10;
-
-const styles = {
-  page: {
-    margin: 0,
-    minHeight: "100vh",
-    background:
-      "radial-gradient(circle at top, #1e293b 0%, #0f172a 40%, #020617 100%)",
-    color: "#e2e8f0",
-    fontFamily: '"Courier New", monospace',
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: "18px",
-  },
-  shell: {
-    width: "min(100%, 1120px)",
-    border: "4px solid #94a3b8",
-    background: "linear-gradient(180deg, #0f172a, #111827)",
-    boxShadow:
-      "0 0 0 4px #020617, 0 0 0 8px #475569, 0 18px 60px rgba(0,0,0,0.6)",
-    padding: "18px",
-  },
-  titlebar: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: "12px",
-    marginBottom: "14px",
-    flexWrap: "wrap",
-  },
-  logo: {
-    display: "inline-block",
-    fontSize: "clamp(20px, 2.8vw, 34px)",
-    fontWeight: 700,
-    letterSpacing: "2px",
-    textTransform: "uppercase",
-    color: "#fff",
-    textShadow: "2px 2px 0 #0f172a, 4px 4px 0 #2563eb, 6px 6px 0 #020617",
-  },
-  subtitle: {
-    color: "#cbd5e1",
-    fontSize: "14px",
-    marginTop: "4px",
-  },
-  hud: {
-    display: "grid",
-    gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
-    gap: "8px",
-    marginBottom: "14px",
-  },
-  panel: {
-    background: "#1e293b",
-    border: "3px solid #94a3b8",
-    boxShadow: "inset -3px -3px 0 #0f172a, inset 3px 3px 0 #475569",
-    padding: "10px",
-    minHeight: "66px",
-  },
-  label: {
-    color: "#93c5fd",
-    fontSize: "12px",
-    textTransform: "uppercase",
-    letterSpacing: "1px",
-    marginBottom: "4px",
-  },
-  value: {
-    fontSize: "22px",
-    fontWeight: 700,
-    color: "#fff",
-  },
-  main: {
-    display: "grid",
-    gridTemplateColumns: "1fr 280px",
-    gap: "14px",
-    alignItems: "start",
-  },
-  gameFrame: {
-    background: "#020617",
-    border: "4px solid #94a3b8",
-    boxShadow: "inset 0 0 0 4px #0f172a",
-    padding: "12px",
-  },
-  canvas: {
-    display: "block",
-    width: "100%",
-    maxWidth: "768px",
-    aspectRatio: "1 / 1",
-    background: "#000",
-    imageRendering: "pixelated",
-    border: "4px solid #475569",
-    margin: "0 auto",
-  },
-  sidebar: {
-    display: "grid",
-    gap: "12px",
-  },
-  btn: {
-    width: "100%",
-    border: 0,
-    background: "linear-gradient(180deg, #60a5fa, #2563eb)",
-    color: "white",
-    fontFamily: '"Courier New", monospace',
-    fontSize: "16px",
-    fontWeight: 700,
-    textTransform: "uppercase",
-    letterSpacing: "1px",
-    padding: "12px 10px",
-    cursor: "pointer",
-    borderWidth: "3px",
-    borderStyle: "solid",
-    borderColor: "#bfdbfe",
-    boxShadow: "inset -3px -3px 0 #1d4ed8, inset 3px 3px 0 #93c5fd",
-  },
-  rulesText: {
-    fontSize: "13px",
-    lineHeight: 1.45,
-    color: "#dbeafe",
-  },
-  legend: {
-    display: "grid",
-    gap: "8px",
-  },
-  legendItem: {
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-    fontSize: "13px",
-  },
-  swatch: {
-    width: "18px",
-    height: "18px",
-    border: "2px solid #fff",
-    flex: "0 0 auto",
-  },
-  footerHint: {
-    marginTop: "12px",
-    color: "#93c5fd",
-    fontSize: "12px",
-    textAlign: "center",
-    textTransform: "uppercase",
-    letterSpacing: "1px",
-  },
-  modal: {
-    position: "fixed",
-    inset: 0,
-    background: "rgba(2, 6, 23, 0.84)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: "20px",
-    zIndex: 1000,
-  },
-  combatCard: {
-    width: "min(100%, 460px)",
-    background: "linear-gradient(180deg, #1e293b, #0f172a)",
-    border: "4px solid #cbd5e1",
-    boxShadow:
-      "0 0 0 4px #334155, 0 0 0 8px #020617, 0 18px 60px rgba(0,0,0,0.6)",
-    padding: "18px",
-    textAlign: "center",
-  },
-  combatTitle: {
-    fontSize: "28px",
-    fontWeight: 700,
-    textTransform: "uppercase",
-    color: "#fff",
-    marginBottom: "10px",
-    textShadow: "2px 2px 0 #2563eb",
-  },
-  combatText: {
-    fontSize: "15px",
-    lineHeight: 1.5,
-    color: "#dbeafe",
-    minHeight: "48px",
-  },
-  diceBox: {
-    margin: "18px auto",
-    width: "132px",
-    height: "132px",
-    border: "4px solid #fff",
-    background: "linear-gradient(180deg, #334155, #0f172a)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: "44px",
-    fontWeight: 700,
-    color: "#facc15",
-    textShadow: "2px 2px 0 #000",
-    boxShadow: "inset -4px -4px 0 #020617, inset 4px 4px 0 #64748b",
-  },
-  resultText: {
-    minHeight: "26px",
-    marginTop: "12px",
-    fontSize: "15px",
-    color: "#fff",
-  },
-};
-
-function rand(min, max) {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-
-function coordKey(x, y) {
-  return `${x},${y}`;
-}
-
-function getGithubPagesBasePath() {
-  if (typeof window === "undefined") return "";
-
-  const pathSegments = (window.location.pathname || "/")
-    .split("/")
-    .filter(Boolean);
-  const isProjectPages =
-    window.location.hostname.endsWith("github.io") && pathSegments.length > 0;
-
-  if (!isProjectPages) return "";
-  return `/${pathSegments[0]}`;
-}
-
-function getAssetUrl(fileName) {
-  return getAssetUrlCandidates(fileName)[0];
-}
-
-function getAssetUrlCandidates(fileName) {
-  const encoded = encodeURIComponent(fileName);
-  const basePath = getGithubPagesBasePath();
-
-  return Array.from(
-    new Set([
-      `${basePath}/dist/${encoded}`,
-      `${basePath}/${encoded}`,
-      `dist/${encoded}`,
-      `/${encoded}`,
-      `/dist/${encoded}`,
-      `./${encoded}`,
-    ])
-  );
-}
+import {
+  BALANCE,
+  DEFAULT_NOTICE,
+  EVENT_TYPES,
+  FLOOR,
+  GRID_SIZE,
+  LEVEL_MODIFIERS,
+  MAX_LEVELS,
+  META_STORAGE_KEY,
+  TILE,
+  WALL,
+  createInitialCombatState,
+  createInitialGameState,
+  createInitialHudState,
+  styles,
+} from "./dungeonRoll/config";
+import { cleanupAudioAsset, createAudioAsset } from "./dungeonRoll/audio";
+import {
+  clamp,
+  coordKey,
+  getAssetUrlCandidates,
+  manhattanDistance,
+  pickRandom,
+  rand,
+} from "./dungeonRoll/utils";
 
 export default function DungeonRollMiniGame({ onBack }) {
   const canvasRef = useRef(null);
@@ -255,38 +37,12 @@ export default function DungeonRollMiniGame({ onBack }) {
     typeof window !== "undefined" ? window.innerWidth <= 920 : false
   );
 
-  const [hud, setHud] = useState({
-    level: 1,
-    lives: 3,
-    keyStatus: "No",
-    monsterCount: 0,
-    state: "Playing",
-  });
+  const [hud, setHud] = useState(createInitialHudState);
+  const [notice, setNotice] = useState(DEFAULT_NOTICE);
 
-  const [combat, setCombat] = useState({
-    open: false,
-    message: "Roll high enough to kill the monster.",
-    result: "",
-    diceDisplay: "D20",
-    rolling: false,
-  });
+  const [combat, setCombat] = useState(createInitialCombatState);
 
-  const gameRef = useRef({
-    currentLevel: 1,
-    lives: 3,
-    hasKey: false,
-    gameOver: false,
-    victory: false,
-    inCombat: false,
-    rolling: false,
-    grid: [],
-    player: { x: 1, y: 1 },
-    key: { x: 2, y: 2 },
-    exitTile: { x: 14, y: 14 },
-    enemies: [],
-    currentCombatEnemy: null,
-    requiredRoll: 0,
-  });
+  const gameRef = useRef(createInitialGameState());
 
   const updateHud = useCallback(() => {
     const g = gameRef.current;
@@ -294,6 +50,11 @@ export default function DungeonRollMiniGame({ onBack }) {
       level: g.currentLevel,
       lives: g.lives,
       keyStatus: g.hasKey ? "Yes" : "No",
+      shieldStatus: g.hasShield ? `${g.shieldCharges}/2` : "No",
+      streak: g.streak,
+      score: g.score,
+      modifier: g.levelModifier?.name || "Classic",
+      nextBonus: g.nextRollBonus,
       monsterCount: g.enemies.length,
       state: g.victory
         ? "Victory"
@@ -302,7 +63,63 @@ export default function DungeonRollMiniGame({ onBack }) {
         : g.inCombat
         ? "Combat"
         : "Playing",
+      bestLevel: g.bestLevel,
+      bestStreak: g.bestStreak,
+      bestScore: g.bestScore,
+      totalKills: g.totalKills,
+      totalWins: g.totalWins,
     });
+  }, []);
+
+  const persistMeta = useCallback(() => {
+    if (typeof window === "undefined") return;
+    const g = gameRef.current;
+    const payload = {
+      bestLevel: g.bestLevel,
+      bestStreak: g.bestStreak,
+      bestScore: g.bestScore,
+      totalKills: g.totalKills,
+      totalWins: g.totalWins,
+    };
+    window.localStorage.setItem(META_STORAGE_KEY, JSON.stringify(payload));
+  }, []);
+
+  const updateMeta = useCallback(() => {
+    const g = gameRef.current;
+    g.bestLevel = Math.max(g.bestLevel, g.currentLevel);
+    g.bestStreak = Math.max(g.bestStreak, g.streak);
+    g.bestScore = Math.max(g.bestScore, g.score);
+    persistMeta();
+  }, [persistMeta]);
+
+  const pushNotice = useCallback((text) => {
+    setNotice(text);
+  }, []);
+
+  const resetCombatState = useCallback(() => {
+    setCombat(createInitialCombatState());
+  }, []);
+
+  const triggerFx = useCallback((kind) => {
+    const g = gameRef.current;
+    if (kind === "hit") {
+      g.shakeTicks = 8;
+      g.flashTicks = 6;
+      g.flashColor = "rgba(239, 68, 68, 0.2)";
+      return;
+    }
+
+    if (kind === "crit") {
+      g.shakeTicks = 5;
+      g.flashTicks = 5;
+      g.flashColor = "rgba(250, 204, 21, 0.2)";
+      return;
+    }
+
+    if (kind === "shield") {
+      g.flashTicks = 5;
+      g.flashColor = "rgba(56, 189, 248, 0.2)";
+    }
   }, []);
 
   const draw = useCallback(() => {
@@ -381,6 +198,15 @@ export default function DungeonRollMiniGame({ onBack }) {
       ctx.fillRect(px + 4, py + 10, 8, 4);
     }
 
+    function drawEliteBadge(x, y, isBoss) {
+      const px = x * TILE;
+      const py = y * TILE;
+      ctx.fillStyle = isBoss ? "#a855f7" : "#f97316";
+      ctx.fillRect(px + 18, py + 2, 12, 6);
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(px + 21, py + 3, 6, 4);
+    }
+
     function drawKey(x, y) {
       const px = x * TILE;
       const py = y * TILE;
@@ -391,6 +217,19 @@ export default function DungeonRollMiniGame({ onBack }) {
       ctx.fillRect(px + 34, py + 26, 4, 6);
       ctx.fillStyle = "#fde68a";
       ctx.fillRect(px + 14, py + 14, 8, 16);
+    }
+
+    function drawShield(x, y) {
+      const px = x * TILE;
+      const py = y * TILE;
+      ctx.fillStyle = "#0f172a";
+      ctx.fillRect(px + 14, py + 10, 20, 28);
+      ctx.fillStyle = "#38bdf8";
+      ctx.fillRect(px + 16, py + 12, 16, 22);
+      ctx.fillStyle = "#e0f2fe";
+      ctx.fillRect(px + 20, py + 16, 8, 12);
+      ctx.fillStyle = "#7dd3fc";
+      ctx.fillRect(px + 18, py + 30, 12, 4);
     }
 
     function drawExit(x, y) {
@@ -406,6 +245,32 @@ export default function DungeonRollMiniGame({ onBack }) {
       ctx.fillRect(px + 30, py + 22, 3, 3);
     }
 
+    function drawShrine(x, y) {
+      const px = x * TILE;
+      const py = y * TILE;
+      ctx.fillStyle = "#7c3aed";
+      ctx.fillRect(px + 10, py + 10, 28, 28);
+      ctx.fillStyle = "#ddd6fe";
+      ctx.fillRect(px + 16, py + 16, 16, 16);
+      ctx.fillStyle = "#4c1d95";
+      ctx.fillRect(px + 20, py + 20, 8, 8);
+    }
+
+    function drawEventTile(event) {
+      const px = event.x * TILE;
+      const py = event.y * TILE;
+      const colorMap = {
+        teleport: "#06b6d4",
+        chest: "#f59e0b",
+        mimic: "#dc2626",
+        fountain: "#22c55e",
+      };
+      ctx.fillStyle = colorMap[event.type] || "#94a3b8";
+      ctx.fillRect(px + 12, py + 12, 24, 24);
+      ctx.fillStyle = "#e2e8f0";
+      ctx.fillRect(px + 18, py + 18, 12, 12);
+    }
+
     function drawOverlay(title, sub) {
       ctx.fillStyle = "rgba(2, 6, 23, 0.7)";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -419,6 +284,14 @@ export default function DungeonRollMiniGame({ onBack }) {
     }
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.save();
+    if (g.shakeTicks > 0) {
+      const sx = rand(-3, 3);
+      const sy = rand(-3, 3);
+      ctx.translate(sx, sy);
+      g.shakeTicks -= 1;
+    }
+
     for (let y = 0; y < GRID_SIZE; y += 1) {
       for (let x = 0; x < GRID_SIZE; x += 1) {
         if (g.grid[y]?.[x] === WALL) drawWall(x, y);
@@ -427,12 +300,36 @@ export default function DungeonRollMiniGame({ onBack }) {
     }
 
     if (!g.hasKey) drawKey(g.key.x, g.key.y);
+    if (g.shield && !g.hasShield) drawShield(g.shield.x, g.shield.y);
+    if (g.shrine) drawShrine(g.shrine.x, g.shrine.y);
+    g.events.forEach((eventTile) => drawEventTile(eventTile));
     drawExit(g.exitTile.x, g.exitTile.y);
-    g.enemies.forEach((enemy) => drawEnemy(enemy.x, enemy.y));
+    g.enemies.forEach((enemy) => {
+      drawEnemy(enemy.x, enemy.y);
+      if (enemy.elite || enemy.boss) drawEliteBadge(enemy.x, enemy.y, enemy.boss);
+    });
     drawHero(g.player.x, g.player.y);
 
-    if (g.gameOver) drawOverlay("GAME OVER", "Press Restart Quest");
-    if (g.victory) drawOverlay("YOU WIN", "All 10 dungeons cleared");
+    if (g.levelModifier?.id === "dark") {
+      const centerX = g.player.x * TILE + TILE / 2;
+      const centerY = g.player.y * TILE + TILE / 2;
+      const gradient = ctx.createRadialGradient(centerX, centerY, 48, centerX, centerY, 240);
+      gradient.addColorStop(0, "rgba(2, 6, 23, 0)");
+      gradient.addColorStop(1, "rgba(2, 6, 23, 0.85)");
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    if (g.flashTicks > 0) {
+      ctx.fillStyle = g.flashColor || "rgba(255, 255, 255, 0.15)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      g.flashTicks -= 1;
+    }
+
+    ctx.restore();
+
+    if (g.gameOver) drawOverlay("GAME OVER", "Click the screen to restart");
+    if (g.victory) drawOverlay("YOU WIN", "Click the screen to play again");
   }, []);
 
   const isInside = useCallback((x, y) => x >= 0 && y >= 0 && x < GRID_SIZE && y < GRID_SIZE, []);
@@ -544,6 +441,10 @@ export default function DungeonRollMiniGame({ onBack }) {
     const g = gameRef.current;
     let ready = false;
 
+    g.levelModifier =
+      g.currentLevel === 1 ? LEVEL_MODIFIERS[0] : pickRandom(LEVEL_MODIFIERS);
+    g.perfectClearClaimed = false;
+
     while (!ready) {
       carveSimpleDungeon();
       const used = new Set();
@@ -559,22 +460,74 @@ export default function DungeonRollMiniGame({ onBack }) {
 
       if (!reachable(g.player, g.key) || !reachable(g.key, g.exitTile)) continue;
 
-      g.enemies = [];
-      const enemyCount = Math.min(2 + g.currentLevel, 7);
-      let placed = 0;
+      g.shrine = null;
+      if (rand(1, 100) <= BALANCE.shrineSpawnChance) {
+        const shrineCell = randomFloorCell(used);
+        if (reachable(g.player, shrineCell)) {
+          g.shrine = shrineCell;
+          used.add(coordKey(shrineCell.x, shrineCell.y));
+        }
+      }
 
-      while (placed < enemyCount) {
+      g.events = [];
+      if (rand(1, 100) <= BALANCE.eventSpawnChance) {
+        const eventCell = randomFloorCell(used);
+        if (reachable(g.player, eventCell)) {
+          g.events.push({
+            ...eventCell,
+            type: pickRandom(EVENT_TYPES),
+          });
+          used.add(coordKey(eventCell.x, eventCell.y));
+        }
+      }
+
+      g.shield = null;
+      if (!g.hasShield && rand(1, 100) <= BALANCE.shieldSpawnChance) {
+        const shieldCell = randomFloorCell(used);
+        if (reachable(g.player, shieldCell)) {
+          g.shield = shieldCell;
+          used.add(coordKey(shieldCell.x, shieldCell.y));
+        }
+      }
+
+      g.enemies = [];
+        const isBossFloor = g.currentLevel === MAX_LEVELS;
+        const enemyCount = isBossFloor ? 1 : Math.min(1 + g.currentLevel, 6);
+      let placed = 0;
+      let attempts = 0;
+      const maxAttempts = 400;
+
+      while (placed < enemyCount && attempts < maxAttempts) {
+        attempts += 1;
         const enemyPos = randomFloorCell(used);
+        if (manhattanDistance(enemyPos, g.player) < BALANCE.minEnemyStartDistance) continue;
         if (!reachable(g.player, enemyPos)) continue;
 
         used.add(coordKey(enemyPos.x, enemyPos.y));
+        const baseDelay = g.levelModifier?.id === "haste" ? rand(14, 24) : rand(20, 36);
         g.enemies.push({
           x: enemyPos.x,
           y: enemyPos.y,
-          stepDelay: rand(18, 34),
+          stepDelay: baseDelay,
           tick: 0,
+          elite: false,
+          boss: false,
+          hp: 1,
         });
         placed += 1;
+      }
+
+      if (placed < enemyCount) continue;
+
+      if (isBossFloor && g.enemies[0]) {
+        g.enemies[0].boss = true;
+        g.enemies[0].elite = true;
+        g.enemies[0].hp = BALANCE.bossHp;
+        g.enemies[0].stepDelay = 14;
+      } else if (g.currentLevel % 3 === 0 && g.enemies.length > 0) {
+        const eliteIndex = rand(0, g.enemies.length - 1);
+        g.enemies[eliteIndex].elite = true;
+        g.enemies[eliteIndex].stepDelay = clamp(g.enemies[eliteIndex].stepDelay - 4, 10, 40);
       }
 
       ready = true;
@@ -586,20 +539,150 @@ export default function DungeonRollMiniGame({ onBack }) {
     g.requiredRoll = 0;
     g.rolling = false;
 
-    setCombat({
-      open: false,
-      message: "Roll high enough to kill the monster.",
-      result: "",
-      diceDisplay: "D20",
-      rolling: false,
-    });
+    resetCombatState();
+
+    pushNotice(`${g.levelModifier.name}: ${g.levelModifier.desc}`);
 
     updateHud();
     draw();
-  }, [carveSimpleDungeon, draw, randomFloorCell, reachable, updateHud]);
+  }, [carveSimpleDungeon, draw, pushNotice, randomFloorCell, reachable, resetCombatState, updateHud]);
+
+  const checkPerfectClear = useCallback(() => {
+    const g = gameRef.current;
+    if (g.perfectClearClaimed || g.enemies.length > 0) return;
+
+    g.perfectClearClaimed = true;
+    g.hasKey = true;
+    g.score += 50;
+    pushNotice("Perfect Clear! Exit unlocked and +50 score.");
+    updateMeta();
+  }, [pushNotice, updateMeta]);
+
+  const applyLootDrop = useCallback(() => {
+    const g = gameRef.current;
+    if (rand(1, 100) > BALANCE.lootDropChance) return;
+
+    const roll = rand(1, 100);
+    if (roll <= 35) {
+      g.lives = Math.min(5, g.lives + 1);
+      pushNotice("Loot drop: Healing potion (+1 life).");
+      return;
+    }
+
+    if (roll <= 70) {
+      g.nextRollBonus += 2;
+      pushNotice("Loot drop: Battle focus (+2 next combat roll).");
+      return;
+    }
+
+    g.score += 15;
+    pushNotice("Loot drop: Treasure cache (+15 score).");
+  }, [pushNotice]);
+
+  const resolveShrine = useCallback(() => {
+    const g = gameRef.current;
+    if (!g.shrine) return;
+
+    g.shrine = null;
+    if (rand(1, 100) <= 55) {
+      const blessing = rand(1, 3);
+      if (blessing === 1) {
+        g.lives = Math.min(5, g.lives + 1);
+        pushNotice("Shrine blessing: +1 life.");
+      } else if (blessing === 2) {
+        g.nextRollBonus += 3;
+        pushNotice("Shrine blessing: +3 next combat roll.");
+      } else {
+        g.hasShield = true;
+        g.shieldCharges = 2;
+        pushNotice("Shrine blessing: Chan's Shield restored.");
+      }
+      return;
+    }
+
+    g.lives -= 1;
+    g.streak = 0;
+    triggerFx("hit");
+    if (g.lives <= 0) {
+      g.gameOver = true;
+      pushNotice("Shrine curse ended your quest.");
+    } else {
+      pushNotice("Shrine curse: you lost 1 life.");
+    }
+  }, [pushNotice, triggerFx]);
+
+  const resolveEventTile = useCallback(
+    (eventTile, startCombat) => {
+      const g = gameRef.current;
+      g.events = g.events.filter((tile) => tile !== eventTile);
+
+      if (eventTile.type === "teleport") {
+        const exclusions = new Set([
+          coordKey(g.key.x, g.key.y),
+          coordKey(g.exitTile.x, g.exitTile.y),
+          ...(g.shield ? [coordKey(g.shield.x, g.shield.y)] : []),
+          ...(g.shrine ? [coordKey(g.shrine.x, g.shrine.y)] : []),
+          ...g.events.map((tile) => coordKey(tile.x, tile.y)),
+          ...g.enemies.map((enemy) => coordKey(enemy.x, enemy.y)),
+        ]);
+        const destination = randomFloorCell(exclusions);
+        g.player = destination;
+        pushNotice("Event: Arcane trap teleported you.");
+        triggerFx("shield");
+        return;
+      }
+
+      if (eventTile.type === "chest") {
+        g.score += 30;
+        if (!g.hasKey && rand(1, 100) <= BALANCE.chestKeyChance) g.hasKey = true;
+        pushNotice("Event: Treasure chest opened (+30 score).");
+        return;
+      }
+
+      if (eventTile.type === "fountain") {
+        g.lives = Math.min(5, g.lives + 1);
+        if (g.hasShield) g.shieldCharges = 2;
+        pushNotice("Event: Healing fountain restored vitality.");
+        return;
+      }
+
+      const mimic = {
+        x: g.player.x,
+        y: g.player.y,
+        stepDelay: 0,
+        tick: 0,
+        elite: false,
+        boss: false,
+        hp: 1,
+        mimic: true,
+      };
+      pushNotice("Event: Mimic chest attacks!");
+      startCombat(mimic);
+    },
+    [pushNotice, randomFloorCell, triggerFx]
+  );
 
   const hitPlayer = useCallback(() => {
     const g = gameRef.current;
+
+    if (g.hasShield) {
+      g.shieldCharges = Math.max(0, g.shieldCharges - 1);
+      g.hasShield = g.shieldCharges > 0;
+      g.streak = 0;
+      g.inCombat = false;
+      g.currentCombatEnemy = null;
+      g.requiredRoll = 0;
+      g.rolling = false;
+      g.combatBonusUsed = 0;
+      triggerFx("shield");
+      pushNotice(g.hasShield ? "Chan's Shield absorbed the hit." : "Chan's Shield shattered.");
+
+      resetCombatState();
+
+      updateHud();
+      draw();
+      return;
+    }
 
     const deathSfx = deathSfxRef.current;
     if (deathSfx) {
@@ -622,21 +705,20 @@ export default function DungeonRollMiniGame({ onBack }) {
     }
 
     g.lives -= 1;
+    g.streak = 0;
     g.inCombat = false;
     g.currentCombatEnemy = null;
     g.requiredRoll = 0;
     g.rolling = false;
+    g.combatBonusUsed = 0;
+    triggerFx("hit");
 
-    setCombat({
-      open: false,
-      message: "Roll high enough to kill the monster.",
-      result: "",
-      diceDisplay: "D20",
-      rolling: false,
-    });
+    resetCombatState();
 
     if (g.lives <= 0) {
       g.gameOver = true;
+      pushNotice("You were defeated.");
+      updateMeta();
 
       updateHud();
       draw();
@@ -644,13 +726,17 @@ export default function DungeonRollMiniGame({ onBack }) {
     }
 
     generateLevel();
-  }, [draw, generateLevel, updateHud]);
+  }, [draw, generateLevel, pushNotice, resetCombatState, triggerFx, updateHud, updateMeta]);
 
   const nextLevel = useCallback(() => {
     const g = gameRef.current;
 
     if (g.currentLevel >= MAX_LEVELS) {
       g.victory = true;
+      g.totalWins += 1;
+      g.score += 100;
+      pushNotice("Victory! Dungeon conquered. +100 score.");
+      updateMeta();
       updateHud();
       draw();
       return;
@@ -658,7 +744,7 @@ export default function DungeonRollMiniGame({ onBack }) {
 
     g.currentLevel += 1;
     generateLevel();
-  }, [draw, generateLevel, updateHud]);
+  }, [draw, generateLevel, pushNotice, updateHud, updateMeta]);
 
   const startCombat = useCallback(
     (enemy) => {
@@ -667,19 +753,42 @@ export default function DungeonRollMiniGame({ onBack }) {
 
       g.inCombat = true;
       g.currentCombatEnemy = enemy;
-      g.requiredRoll = rand(7, 16) + Math.floor(g.currentLevel / 3);
+      const baseRoll = rand(6, 14) + Math.floor(g.currentLevel / 4);
+      const elitePenalty = enemy.elite ? 1 : 0;
+      const bossPenalty = enemy.boss ? 2 : 0;
+      const blessingBonus = g.levelModifier?.id === "blessing" ? 2 : 0;
+      g.combatBonusUsed = g.nextRollBonus;
+      g.requiredRoll = clamp(
+        baseRoll + elitePenalty + bossPenalty - blessingBonus - g.combatBonusUsed,
+        4,
+        20
+      );
+      g.nextRollBonus = 0;
+      const enemyName = enemy.boss
+        ? "Boss"
+        : enemy.mimic
+        ? "Mimic"
+        : enemy.elite
+        ? "Elite monster"
+        : "Monster";
 
       setCombat({
         open: true,
-        message: `You must roll ${g.requiredRoll} or higher to kill the monster.`,
+        message: `${enemyName}: roll ${g.requiredRoll}+ to win.${
+          enemy.boss ? ` Boss HP ${enemy.hp}.` : ""
+        }`,
         result: "",
         diceDisplay: "D20",
         rolling: false,
       });
 
+      if (g.combatBonusUsed > 0) {
+        pushNotice(`Battle focus used: +${g.combatBonusUsed} applied.`);
+      }
+
       updateHud();
     },
-    [updateHud]
+    [pushNotice, updateHud]
   );
 
   const movePlayer = useCallback(
@@ -698,6 +807,37 @@ export default function DungeonRollMiniGame({ onBack }) {
         g.hasKey = true;
       }
 
+      if (g.shield && g.player.x === g.shield.x && g.player.y === g.shield.y) {
+        g.hasShield = true;
+        g.shieldCharges = 2;
+        g.shield = null;
+        pushNotice("Picked up Chan's Shield (2 hits).");
+      }
+
+      if (g.shrine && g.player.x === g.shrine.x && g.player.y === g.shrine.y) {
+        resolveShrine();
+        if (g.gameOver) {
+          updateHud();
+          draw();
+          return;
+        }
+      }
+
+      const eventTile = g.events.find((tile) => tile.x === g.player.x && tile.y === g.player.y);
+      if (eventTile) {
+        resolveEventTile(eventTile, startCombat);
+        if (g.inCombat) {
+          updateHud();
+          draw();
+          return;
+        }
+        if (g.gameOver) {
+          updateHud();
+          draw();
+          return;
+        }
+      }
+
       for (const enemy of g.enemies) {
         if (enemy.x === g.player.x && enemy.y === g.player.y) {
           startCombat(enemy);
@@ -711,10 +851,21 @@ export default function DungeonRollMiniGame({ onBack }) {
         return;
       }
 
+      updateMeta();
       updateHud();
       draw();
     },
-    [draw, isWalkable, nextLevel, startCombat, updateHud]
+    [
+      draw,
+      isWalkable,
+      nextLevel,
+      resolveEventTile,
+      resolveShrine,
+      startCombat,
+      updateHud,
+      updateMeta,
+      pushNotice,
+    ]
   );
 
   const moveEnemies = useCallback(() => {
@@ -738,7 +889,11 @@ export default function DungeonRollMiniGame({ onBack }) {
         .filter(
           (pos) =>
             isWalkable(pos.x, pos.y) &&
-            !(pos.x === g.exitTile.x && pos.y === g.exitTile.y)
+            !(pos.x === g.exitTile.x && pos.y === g.exitTile.y) &&
+            !(pos.x === g.key.x && pos.y === g.key.y) &&
+            !(g.shield && pos.x === g.shield.x && pos.y === g.shield.y) &&
+            !(g.shrine && pos.x === g.shrine.x && pos.y === g.shrine.y) &&
+            !g.events.some((tile) => tile.x === pos.x && tile.y === pos.y)
         );
 
       if (options.length) {
@@ -762,10 +917,26 @@ export default function DungeonRollMiniGame({ onBack }) {
     g.currentLevel = 1;
     g.lives = 3;
     g.hasKey = false;
+    g.hasShield = false;
+    g.shieldCharges = 0;
+    g.streak = 0;
+    g.score = 0;
+    g.nextRollBonus = 0;
+    g.shield = null;
+    g.shrine = null;
+    g.events = [];
     g.gameOver = false;
     g.victory = false;
+    g.combatBonusUsed = 0;
+    pushNotice("A new quest begins.");
     generateLevel();
-  }, [generateLevel]);
+  }, [generateLevel, pushNotice]);
+
+  const handleRestartOverlayClick = useCallback(() => {
+    const g = gameRef.current;
+    if (!g.gameOver && !g.victory) return;
+    resetGame();
+  }, [resetGame]);
 
   const handleRoll = useCallback(() => {
     const g = gameRef.current;
@@ -830,12 +1001,34 @@ export default function DungeonRollMiniGame({ onBack }) {
       setCombat((prev) => ({ ...prev, diceDisplay: String(finalRoll) }));
 
       if (finalRoll === 20) {
-        g.enemies = g.enemies.filter((enemy) => enemy !== g.currentCombatEnemy);
+        const enemy = g.currentCombatEnemy;
+        if (enemy?.boss && enemy.hp > 1) {
+          enemy.hp -= 2;
+          if (enemy.hp <= 0) {
+            g.enemies = g.enemies.filter((mob) => mob !== enemy);
+            g.totalKills += 1;
+          }
+        } else {
+          g.enemies = g.enemies.filter((mob) => mob !== enemy);
+          g.totalKills += 1;
+        }
+
+        g.streak += 1;
+        g.score += enemy?.boss ? 40 : enemy?.elite ? 20 : 10;
+        if (g.streak > 0 && g.streak % 3 === 0) {
+          g.nextRollBonus = clamp(g.nextRollBonus + 1, 0, 3);
+          pushNotice("Streak reward: +1 next combat roll.");
+        }
         g.inCombat = false;
         g.currentCombatEnemy = null;
         g.rolling = false;
+        g.combatBonusUsed = 0;
+        updateMeta();
+        applyLootDrop();
+        checkPerfectClear();
         updateHud();
         playKillSfx();
+        triggerFx("crit");
 
         setCombat((prev) => ({
           ...prev,
@@ -844,13 +1037,7 @@ export default function DungeonRollMiniGame({ onBack }) {
         }));
 
         window.setTimeout(() => {
-          setCombat({
-            open: false,
-            message: "Roll high enough to kill the monster.",
-            result: "",
-            diceDisplay: "D20",
-            rolling: false,
-          });
+          resetCombatState();
           draw();
         }, 650);
         return;
@@ -868,10 +1055,40 @@ export default function DungeonRollMiniGame({ onBack }) {
       }
 
       if (finalRoll >= g.requiredRoll) {
-        g.enemies = g.enemies.filter((enemy) => enemy !== g.currentCombatEnemy);
+        const enemy = g.currentCombatEnemy;
+        if (enemy?.boss && enemy.hp > 1) {
+          enemy.hp -= 1;
+          g.inCombat = true;
+          g.currentCombatEnemy = enemy;
+          g.rolling = false;
+          g.requiredRoll = clamp(g.requiredRoll, 4, 20);
+          setCombat((prev) => ({
+            ...prev,
+            rolling: false,
+            result: `You wounded the boss. ${enemy.hp} HP left.`,
+            message: `Boss still stands: roll ${g.requiredRoll}+ for the next hit.`,
+          }));
+          triggerFx("hit");
+          updateHud();
+          draw();
+          return;
+        }
+
+        g.enemies = g.enemies.filter((mob) => mob !== enemy);
+        g.totalKills += 1;
+        g.streak += 1;
+        g.score += enemy?.boss ? 40 : enemy?.elite ? 20 : 10;
+        if (g.streak > 0 && g.streak % 3 === 0) {
+          g.nextRollBonus = clamp(g.nextRollBonus + 1, 0, 3);
+          pushNotice("Streak reward: +1 next combat roll.");
+        }
         g.inCombat = false;
         g.currentCombatEnemy = null;
         g.rolling = false;
+        g.combatBonusUsed = 0;
+        updateMeta();
+        applyLootDrop();
+        checkPerfectClear();
         updateHud();
         playKillSfx();
 
@@ -882,13 +1099,7 @@ export default function DungeonRollMiniGame({ onBack }) {
         }));
 
         window.setTimeout(() => {
-          setCombat({
-            open: false,
-            message: "Roll high enough to kill the monster.",
-            result: "",
-            diceDisplay: "D20",
-            rolling: false,
-          });
+          resetCombatState();
           draw();
         }, 650);
         return;
@@ -902,9 +1113,36 @@ export default function DungeonRollMiniGame({ onBack }) {
       g.rolling = false;
       window.setTimeout(() => hitPlayer(), 700);
     }, 85);
-  }, [draw, hitPlayer, updateHud]);
+  }, [
+    applyLootDrop,
+    checkPerfectClear,
+    draw,
+    hitPlayer,
+    pushNotice,
+    resetCombatState,
+    triggerFx,
+    updateHud,
+    updateMeta,
+  ]);
 
   useEffect(() => {
+    const g = gameRef.current;
+    if (typeof window !== "undefined") {
+      try {
+        const raw = window.localStorage.getItem(META_STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          g.bestLevel = Number(parsed.bestLevel) || 1;
+          g.bestStreak = Number(parsed.bestStreak) || 0;
+          g.bestScore = Number(parsed.bestScore) || 0;
+          g.totalKills = Number(parsed.totalKills) || 0;
+          g.totalWins = Number(parsed.totalWins) || 0;
+        }
+      } catch {
+        // Ignore corrupted save data.
+      }
+    }
+
     function onResize() {
       setIsMobile(window.innerWidth <= 920);
     }
@@ -952,23 +1190,37 @@ export default function DungeonRollMiniGame({ onBack }) {
   }, [moveEnemies, movePlayer, resetGame]);
 
   useEffect(() => {
-    const bgmCandidates = getAssetUrlCandidates("NES TITLE THEME SONG.mp3");
-    const initialSrc = bgmCandidates[0];
+    const playlist = [
+      getAssetUrlCandidates("NES TITLE THEME SONG.mp3"),
+      getAssetUrlCandidates("TempleOS theme Remix.mp3"),
+    ];
+    let trackIndex = 0;
+    const initialSrc = playlist[trackIndex][0];
     const bgm = new Audio(initialSrc);
-    bgm.loop = true;
+    bgm.loop = false;
     bgm.preload = "auto";
     bgm.volume = 0.45;
     bgm.setAttribute("data-src", initialSrc);
+    bgm.setAttribute("data-track-index", String(trackIndex));
     bgmRef.current = bgm;
 
     let interactionHandler = null;
-    const playWithFallback = () => {
+    const playTrack = (nextTrackIndex = trackIndex) => {
+      const candidates = playlist[nextTrackIndex] || playlist[0];
       const currentSrc = bgm.getAttribute("data-src") || "";
-      const fallbackSrc =
-        bgmCandidates.find((candidate) => candidate !== currentSrc) || bgmCandidates[0];
+      const preferredSrc = candidates[0];
+      const fallbackSrc = candidates.find((candidate) => candidate !== currentSrc) || candidates[0];
+
+      trackIndex = nextTrackIndex;
+      if (bgm.src !== preferredSrc && currentSrc !== preferredSrc) {
+        bgm.src = preferredSrc;
+        bgm.setAttribute("data-src", preferredSrc);
+      }
+      bgm.setAttribute("data-track-index", String(trackIndex));
+      bgm.currentTime = 0;
 
       return bgm.play().catch(() => {
-        if (fallbackSrc && fallbackSrc !== currentSrc) {
+        if (fallbackSrc && fallbackSrc !== preferredSrc) {
           bgm.src = fallbackSrc;
           bgm.setAttribute("data-src", fallbackSrc);
           bgm.currentTime = 0;
@@ -979,16 +1231,15 @@ export default function DungeonRollMiniGame({ onBack }) {
     };
 
     const onBgmEnded = () => {
-      // Backup loop path for browsers that occasionally ignore HTMLAudioElement.loop.
-      bgm.currentTime = 0;
-      playWithFallback();
+      const nextTrackIndex = (trackIndex + 1) % playlist.length;
+      playTrack(nextTrackIndex).catch(() => {});
     };
 
     bgm.addEventListener("ended", onBgmEnded);
 
-    playWithFallback().catch(() => {
+    playTrack(trackIndex).catch(() => {
       interactionHandler = () => {
-        playWithFallback().catch(() => {});
+        playTrack(trackIndex).catch(() => {});
         window.removeEventListener("pointerdown", interactionHandler);
         window.removeEventListener("keydown", interactionHandler);
       };
@@ -1010,46 +1261,31 @@ export default function DungeonRollMiniGame({ onBack }) {
   }, []);
 
   useEffect(() => {
-    const initialSrc = getAssetUrl("dice-roll.mp3");
-    const rollSfx = new Audio(initialSrc);
-    rollSfx.preload = "auto";
-    rollSfx.volume = 0.9;
-    rollSfx.setAttribute("data-src", initialSrc);
+    const rollSfx = createAudioAsset("dice-roll.mp3", 0.9);
     rollSfxRef.current = rollSfx;
 
     return () => {
-      rollSfx.pause();
-      rollSfx.currentTime = 0;
+      cleanupAudioAsset(rollSfx);
       rollSfxRef.current = null;
     };
   }, []);
 
   useEffect(() => {
-    const initialSrc = getAssetUrl("monster-dying-effect.mp3");
-    const killSfx = new Audio(initialSrc);
-    killSfx.preload = "auto";
-    killSfx.volume = 0.95;
-    killSfx.setAttribute("data-src", initialSrc);
+    const killSfx = createAudioAsset("monster-dying-effect.mp3", 0.95);
     killSfxRef.current = killSfx;
 
     return () => {
-      killSfx.pause();
-      killSfx.currentTime = 0;
+      cleanupAudioAsset(killSfx);
       killSfxRef.current = null;
     };
   }, []);
 
   useEffect(() => {
-    const initialSrc = getAssetUrl("you-died.mp3");
-    const deathSfx = new Audio(initialSrc);
-    deathSfx.preload = "auto";
-    deathSfx.volume = 0.95;
-    deathSfx.setAttribute("data-src", initialSrc);
+    const deathSfx = createAudioAsset("you-died.mp3", 0.95);
     deathSfxRef.current = deathSfx;
 
     return () => {
-      deathSfx.pause();
-      deathSfx.currentTime = 0;
+      cleanupAudioAsset(deathSfx);
       deathSfxRef.current = null;
     };
   }, []);
@@ -1125,8 +1361,28 @@ export default function DungeonRollMiniGame({ onBack }) {
             <div style={styles.value}>{hud.keyStatus}</div>
           </div>
           <div style={styles.panel}>
+            <div style={styles.label}>Chan's Shield</div>
+            <div style={styles.value}>{hud.shieldStatus}</div>
+          </div>
+          <div style={styles.panel}>
             <div style={styles.label}>Monsters</div>
             <div style={styles.value}>{hud.monsterCount}</div>
+          </div>
+          <div style={styles.panel}>
+            <div style={styles.label}>Streak</div>
+            <div style={styles.value}>{hud.streak}</div>
+          </div>
+          <div style={styles.panel}>
+            <div style={styles.label}>Score</div>
+            <div style={styles.value}>{hud.score}</div>
+          </div>
+          <div style={styles.panel}>
+            <div style={styles.label}>Floor Mod</div>
+            <div style={{ ...styles.value, fontSize: 16 }}>{hud.modifier}</div>
+          </div>
+          <div style={styles.panel}>
+            <div style={styles.label}>Roll Bonus</div>
+            <div style={styles.value}>{hud.nextBonus > 0 ? `+${hud.nextBonus}` : "No"}</div>
           </div>
           <div style={styles.panel}>
             <div style={styles.label}>State</div>
@@ -1142,9 +1398,18 @@ export default function DungeonRollMiniGame({ onBack }) {
         >
           <div style={styles.gameFrame}>
             <canvas ref={canvasRef} width={768} height={768} style={styles.canvas} />
+            {hud.state === "Defeated" || hud.state === "Victory" ? (
+              <div
+                role="button"
+                aria-label="Restart quest"
+                style={styles.restartOverlayHitArea}
+                onClick={handleRestartOverlayClick}
+              />
+            ) : null}
             <div style={styles.footerHint}>
               Move with WASD or Arrow Keys. Get the key. Reach the door. Roll to survive.
             </div>
+            <div style={styles.noticeText}>{notice}</div>
           </div>
 
           <div style={styles.sidebar}>
@@ -1160,7 +1425,20 @@ export default function DungeonRollMiniGame({ onBack }) {
                 <li style={styles.rulesText}>Roll high enough to kill the monster.</li>
                 <li style={styles.rulesText}>Natural 20 is a critical kill.</li>
                 <li style={styles.rulesText}>Natural 1 is instant death.</li>
+                <li style={styles.rulesText}>Some levels spawn Chan's Shield, which blocks two monster hits.</li>
+                <li style={styles.rulesText}>Every 3rd level has an elite monster. Level 10 has a 3-HP boss.</li>
+                <li style={styles.rulesText}>Clear all monsters for a Perfect Clear: key auto-unlocks and +50 score.</li>
+                <li style={styles.rulesText}>Shrines can bless or curse. Event tiles add random surprises.</li>
               </ul>
+            </div>
+
+            <div style={styles.panel}>
+              <div style={styles.label}>Records</div>
+              <div style={styles.rulesText}>Best level: {hud.bestLevel}</div>
+              <div style={styles.rulesText}>Best streak: {hud.bestStreak}</div>
+              <div style={styles.rulesText}>Best score: {hud.bestScore}</div>
+              <div style={styles.rulesText}>Total kills: {hud.totalKills}</div>
+              <div style={styles.rulesText}>Total wins: {hud.totalWins}</div>
             </div>
 
             <div style={styles.panel}>
@@ -1176,7 +1454,25 @@ export default function DungeonRollMiniGame({ onBack }) {
                   <span style={{ ...styles.swatch, background: "#facc15" }} /> Key
                 </div>
                 <div style={styles.legendItem}>
+                  <span style={{ ...styles.swatch, background: "#38bdf8" }} /> Chan's Shield
+                </div>
+                <div style={styles.legendItem}>
                   <span style={{ ...styles.swatch, background: "#22c55e" }} /> Exit
+                </div>
+                <div style={styles.legendItem}>
+                  <span style={{ ...styles.swatch, background: "#7c3aed" }} /> Shrine
+                </div>
+                <div style={styles.legendItem}>
+                  <span style={{ ...styles.swatch, background: "#06b6d4" }} /> Teleport Trap
+                </div>
+                <div style={styles.legendItem}>
+                  <span style={{ ...styles.swatch, background: "#f59e0b" }} /> Treasure Chest
+                </div>
+                <div style={styles.legendItem}>
+                  <span style={{ ...styles.swatch, background: "#dc2626" }} /> Mimic Event
+                </div>
+                <div style={styles.legendItem}>
+                  <span style={{ ...styles.swatch, background: "#22c55e" }} /> Healing Fountain
                 </div>
                 <div style={styles.legendItem}>
                   <span style={{ ...styles.swatch, background: "#64748b" }} /> Wall
