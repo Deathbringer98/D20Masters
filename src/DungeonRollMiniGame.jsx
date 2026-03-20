@@ -1147,6 +1147,12 @@ export default function DungeonRollMiniGame({ onBack }) {
     }
 
     function onKeyDown(e) {
+      if (e.code === "Space" || e.key === " ") {
+        e.preventDefault();
+        handleRoll();
+        return;
+      }
+
       const map = {
         ArrowUp: [0, -1],
         ArrowDown: [0, 1],
@@ -1186,7 +1192,7 @@ export default function DungeonRollMiniGame({ onBack }) {
       window.cancelAnimationFrame(rafRef.current);
       window.clearInterval(rollerRef.current);
     };
-  }, [moveEnemies, movePlayer, resetGame]);
+  }, [handleRoll, moveEnemies, movePlayer, resetGame]);
 
   useEffect(() => {
     const playlist = [
