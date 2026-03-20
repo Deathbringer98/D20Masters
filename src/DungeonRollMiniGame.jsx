@@ -37,6 +37,11 @@ function getMaxLevelsForDifficulty(difficulty) {
 }
 
 export default function DungeonRollMiniGame({ onBack }) {
+
+  // Always start at main menu and clear difficulty on mount (fixes dev hot reload state persistence)
+  const [menuState, setMenuState] = useState("start"); // start | options | difficulty | game
+  const [difficulty, setDifficulty] = useState(null);
+  // Title screen image
   const titleScreenUrl = "/title-screen.png";
 
   const shopItems = useMemo(
@@ -74,10 +79,13 @@ export default function DungeonRollMiniGame({ onBack }) {
     []
   );
 
-  const [menuState, setMenuState] = useState("start"); // start | options | difficulty | game
   const [menuIndex, setMenuIndex] = useState(0);
   const [difficultyIndex, setDifficultyIndex] = useState(0);
-  const [difficulty, setDifficulty] = useState(null);
+    // On mount, always force menuState to 'start' and difficulty to null
+    useEffect(() => {
+      setMenuState("start");
+      setDifficulty(null);
+    }, []);
   const [audioVolume, setAudioVolume] = useState(0.45);
   const [rebindKey, setRebindKey] = useState(null);
   const [keyBindings, setKeyBindings] = useState({
