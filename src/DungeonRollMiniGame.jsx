@@ -1837,8 +1837,9 @@ export default function DungeonRollMiniGame({ onBack }) {
   }, []);
 
   return (
-    <div style={mergeStyle(styles?.page, { minHeight: "100vh", color: "#fff", paddingBottom: 80 })}>
-      {shopOpen && menuState === "game" && (
+    <>
+      <div style={mergeStyle(styles?.page, { minHeight: "100vh", color: "#fff", paddingBottom: 80 })}>
+        {shopOpen && menuState === "game" && (
         <div
           style={mergeStyle(styles?.modal, {
             position: "fixed",
@@ -1852,31 +1853,33 @@ export default function DungeonRollMiniGame({ onBack }) {
           })}
         >
           <div
-            style={{
-              background: "linear-gradient(180deg, #1e293b, #2563eb 90%)",
-              border: "4px solid #38bdf8",
-              boxShadow: "0 0 32px 12px #38bdf8, 0 0 64px 24px #60a5fa",
-              padding: 32,
-              borderRadius: 18,
-              width: "min(420px, 100%)",
-              textAlign: "center",
-              fontFamily: '"Courier New", monospace',
-              color: "#fff",
-            }}
-          >
-            <div style={{ marginBottom: 18 }}>
-              <div
-                style={{
-                  width: 64,
-                  height: 64,
-                  margin: "0 auto",
-                  background: "#fff",
-                  borderRadius: 8,
-                  boxShadow: "0 0 8px #38bdf8",
-                  position: "relative",
-                  display: "inline-block",
-                }}
-              >
+            </div>
+            <a
+              href="https://buymeacoffee.com/ghostbyte"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                position: "fixed",
+                bottom: 24,
+                right: 24,
+                zIndex: 99999,
+                background: "#ffdd00",
+                color: "#333",
+                borderRadius: 8,
+                boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                padding: "12px 24px",
+                fontWeight: "bold",
+                fontSize: 18,
+                textDecoration: "none",
+                transition: "background 0.2s",
+                border: "2px solid #fff",
+                pointerEvents: "auto"
+              }}
+            >
+              ☕ Buy Me a Coffee
+            </a>
+          </>
+        );
                 <div
                   style={{
                     width: 48,
