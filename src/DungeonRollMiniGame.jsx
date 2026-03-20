@@ -870,11 +870,7 @@ export default function DungeonRollMiniGame({ onBack }) {
           if (g._autoNat20Buff) return 20;
           return rand(min, max);
         }
-      updateMeta();
-
-      updateHud();
-      draw();
-      return;
+      // ...existing code...
     }
 
     generateLevel();
