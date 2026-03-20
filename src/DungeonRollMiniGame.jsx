@@ -1856,51 +1856,51 @@ export default function DungeonRollMiniGame({ onBack }) {
             </div>
             <a
               href="https://buymeacoffee.com/ghostbyte"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                position: "fixed",
-                bottom: 24,
-                right: 24,
-                zIndex: 99999,
-                background: "#ffdd00",
-                color: "#333",
-                borderRadius: 8,
-                boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-                padding: "12px 24px",
-                fontWeight: "bold",
-                fontSize: 18,
-                textDecoration: "none",
-                transition: "background 0.2s",
-                border: "2px solid #fff",
-                pointerEvents: "auto"
-              }}
-            >
-              ☕ Buy Me a Coffee
-            </a>
-          </>
-        );
-                <div
+              <>
+                <div style={mergeStyle(styles?.page, { minHeight: "100vh", color: "#fff", paddingBottom: 80 })}>
+                  {shopOpen && menuState === "game" && (
+                    <div
+                      style={mergeStyle(styles?.modal, {
+                        position: "fixed",
+                        inset: 0,
+                        background: "rgba(2, 6, 23, 0.72)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        zIndex: 2000,
+                        padding: 20,
+                      })}
+                    >
+                      <div>{/* ...existing shop modal content... */}</div>
+                    </div>
+                  )}
+                  {/* ...rest of main content... */}
+                </div>
+                <a
+                  href="https://buymeacoffee.com/ghostbyte"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   style={{
-                    width: 48,
-                    height: 18,
-                    background: "#2563eb",
-                    position: "absolute",
-                    top: 0,
-                    left: 8,
-                    borderRadius: 4,
-                    boxShadow: "0 2px 8px #60a5fa",
+                    position: "fixed",
+                    bottom: 24,
+                    right: 24,
+                    zIndex: 99999,
+                    background: "#ffdd00",
+                    color: "#333",
+                    borderRadius: 8,
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                    padding: "12px 24px",
+                    fontWeight: "bold",
+                    fontSize: 18,
+                    textDecoration: "none",
+                    transition: "background 0.2s",
+                    border: "2px solid #fff",
+                    pointerEvents: "auto"
                   }}
-                />
-                <div
-                  style={{
-                    width: 8,
-                    height: 8,
-                    background: "#0f172a",
-                    position: "absolute",
-                    top: 28,
-                    left: 16,
-                    borderRadius: 2,
+                >
+                  ☕ Buy Me a Coffee
+                </a>
+              </>
                   }}
                 />
                 <div
