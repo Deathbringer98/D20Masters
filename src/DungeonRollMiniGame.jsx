@@ -1744,11 +1744,7 @@ export default function DungeonRollMiniGame({ onBack }) {
     };
   }, [moveEnemies]);
 
-  useEffect(() => {
-    if (!difficulty) return;
-    if (menuState !== "game") return;
-    resetGame();
-  }, [difficulty, menuState, resetGame]);
+
 
   useEffect(() => {
     let music = null;
@@ -2073,6 +2069,7 @@ export default function DungeonRollMiniGame({ onBack }) {
                       }
                       setDifficulty(item.key);
                       setMenuState("game");
+                      setTimeout(() => resetGame(), 0);
                     }}
                   >
                     {item.label}
