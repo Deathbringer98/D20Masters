@@ -37,6 +37,8 @@ function getMaxLevelsForDifficulty(difficulty) {
 }
 
 export default function DungeonRollMiniGame({ onBack }) {
+  const titleScreenUrl = "/title-screen.png";
+
   const shopItems = useMemo(
     () => [
       {
@@ -48,7 +50,7 @@ export default function DungeonRollMiniGame({ onBack }) {
       {
         id: "standing",
         name: "Potion of Standing Position",
-        desc: "Prevents level reroll after one death.",
+        desc: "Prevents one level reroll after death.",
         price: 15,
       },
       {
@@ -61,7 +63,31 @@ export default function DungeonRollMiniGame({ onBack }) {
     []
   );
 
-  const [shopkeeper, setShopkeeper] = useState(null);
+  const startMenuItems = useMemo(() => ["START", "OPTIONS", "EXIT"], []);
+  const difficultyItems = useMemo(
+    () => [
+      { key: "easy", label: "EASY (10 LEVELS)" },
+      { key: "medium", label: "MEDIUM (25 LEVELS)" },
+      { key: "hard", label: "HARD (50 LEVELS)" },
+      { key: "back", label: "BACK" },
+    ],
+    []
+  );
+
+  const [menuState, setMenuState] = useState("start"); // start | options | difficulty | game
+  const [menuIndex, setMenuIndex] = useState(0);
+  const [difficultyIndex, setDifficultyIndex] = useState(0);
+  const [difficulty, setDifficulty] = useState(null);
+  const [audioVolume, setAudioVolume] = useState(0.45);
+  const [rebindKey, setRebindKey] = useState(null);
+  const [keyBindings, setKeyBindings] = useState({
+    up: "ArrowUp",
+    down: "ArrowDown",
+    left: "ArrowLeft",
+    right: "ArrowRight",
+    roll: "Space",
+  });
+
   const [shopOpen, setShopOpen] = useState(false);
   const [playerInventory, setPlayerInventory] = useState({
     vision: false,
@@ -70,19 +96,16 @@ export default function DungeonRollMiniGame({ onBack }) {
     _shopBought: false,
   });
 
-  const [menuState, setMenuState] = useState("start");
-  const [difficulty, setDifficulty] = useState(null);
-  const [audioVolume, setAudioVolume] = useState(0.45);
-  const [keyBindings, setKeyBindings] = useState({
-    up: "ArrowUp",
-    down: "ArrowDown",
-    left: "ArrowLeft",
-    right: "ArrowRight",
-    roll: "Space",
-  });
-  const [rebindKey, setRebindKey] = useState(null);
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== "undefined" ? window.innerWidth <= 920 : false
+  );
+
+  const [hud, setHud] = useState(createInitialHudState);
+  const [notice, setNotice] = useState(DEFAULT_NOTICE);
+  const [combat, setCombat] = useState(createInitialCombatState);
 
   const canvasRef = useRef(null);
+  const gameRef = useRef(createInitialGameState());
   const rafRef = useRef(0);
   const rollerRef = useRef(0);
   const fastRollResolverRef = useRef(null);
@@ -93,15 +116,83 @@ export default function DungeonRollMiniGame({ onBack }) {
   const killSfxRef = useRef(null);
   const deathSfxRef = useRef(null);
 
-  const [isMobile, setIsMobile] = useState(
-    typeof window !== "undefined" ? window.innerWidth <= 920 : false
-  );
+  const menuBgStyle = {
+    minHeight: "100vh",
+    width: "100%",
+    backgroundImage: `url(${titleScreenUrl})`,
+    backgroundSize: "cover",
+    backgroundPosition: "center",
+    backgroundRepeat: "no-repeat",
+    position: "relative",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  };
 
-  const [hud, setHud] = useState(createInitialHudState);
-  const [notice, setNotice] = useState(DEFAULT_NOTICE);
-  const [combat, setCombat] = useState(createInitialCombatState);
+  const menuOverlayStyle = {
+    position: "absolute",
+    inset: 0,
+    background: "rgba(0,0,0,0.18)",
+  };
 
-  const gameRef = useRef(createInitialGameState());
+  const menuPanelStyle = {
+    position: "relative",
+    zIndex: 2,
+    width: "100%",
+    maxWidth: 1400,
+    minHeight: "100vh",
+  };
+
+  const menuButtonColumnStyle = {
+    position: "absolute",
+    right: isMobile ? "10%" : "22%",
+    top: isMobile ? "58%" : "49%",
+    transform: "translateY(-50%)",
+    display: "flex",
+    flexDirection: "column",
+    gap: isMobile ? 12 : 18,
+  };
+
+  const menuButtonStyle = (active = false) => ({
+    background: "transparent",
+    color: "#fff",
+    border: "none",
+    fontSize: isMobile ? 34 : 46,
+    fontWeight: 900,
+    fontFamily: '"Courier New", monospace',
+    letterSpacing: "0.03em",
+    textShadow: active
+      ? "0 0 12px #facc15, 4px 4px 0 #000"
+      : "4px 4px 0 #000",
+    cursor: "pointer",
+    textAlign: "left",
+    padding: 0,
+    lineHeight: 1,
+  });
+
+  const menuDotStyle = {
+    color: "#facc15",
+    marginRight: 12,
+    textShadow: "0 0 10px #facc15, 3px 3px 0 #000",
+  };
+
+  const panelStyle = mergeStyle(styles?.panel, {
+    background: "rgba(15, 23, 42, 0.88)",
+    border: "1px solid rgba(148, 163, 184, 0.3)",
+    borderRadius: 12,
+    padding: 12,
+    color: "#fff",
+  });
+
+  const btnStyle = mergeStyle(styles?.btn, {
+    padding: "12px 18px",
+    borderRadius: 10,
+    border: "1px solid rgba(255,255,255,0.15)",
+    background: "#1e293b",
+    color: "#fff",
+    cursor: "pointer",
+    fontWeight: 700,
+  });
 
   const updateHud = useCallback(() => {
     const g = gameRef.current;
@@ -739,10 +830,9 @@ export default function DungeonRollMiniGame({ onBack }) {
           const sx = rand(2, GRID_SIZE - 3);
           const sy = rand(2, GRID_SIZE - 3);
           g.shopkeeper = { x: sx, y: sy };
-          setShopkeeper(g.shopkeeper);
+          setShopOpen(false);
         } else {
           g.shopkeeper = null;
-          setShopkeeper(null);
         }
         return;
       }
@@ -868,7 +958,6 @@ export default function DungeonRollMiniGame({ onBack }) {
     g.perfectClearClaimed = false;
     g._autoNat20Buff = false;
     g.shopkeeper = null;
-    setShopkeeper(null);
     setShopOpen(false);
 
     while (!ready) {
@@ -890,7 +979,7 @@ export default function DungeonRollMiniGame({ onBack }) {
         const shrineCell = randomFloorCell(used);
         if (reachable(g.player, shrineCell)) {
           g.shrine = shrineCell;
-          used.add(coordKey(shrineCell.x, shrineCell.y));
+          used.add(coordKey(g.shrine.x, g.shrine.y));
         }
       }
 
@@ -1034,7 +1123,6 @@ export default function DungeonRollMiniGame({ onBack }) {
       if (g.shopkeeper && g.player.x === g.shopkeeper.x && g.player.y === g.shopkeeper.y) {
         setShopOpen(true);
         g.shopkeeper = null;
-        setShopkeeper(null);
         updateHud();
         draw();
         return;
@@ -1173,7 +1261,6 @@ export default function DungeonRollMiniGame({ onBack }) {
     const g = gameRef.current;
 
     g.maxLevels = getMaxLevelsForDifficulty(difficulty);
-    g.shopVisits = 0;
     g.shopLevels = [];
 
     if (difficulty === "easy") {
@@ -1185,7 +1272,6 @@ export default function DungeonRollMiniGame({ onBack }) {
     }
 
     setShopOpen(false);
-    setShopkeeper(null);
     setPlayerInventory({
       vision: false,
       standing: false,
@@ -1279,39 +1365,39 @@ export default function DungeonRollMiniGame({ onBack }) {
         fastRollResolverRef.current = null;
         setCombat((prev) => ({ ...prev, diceDisplay: String(finalRoll) }));
 
-        if (g._autoNat20Buff) {
+        if (gameRef.current._autoNat20Buff) {
           finalRoll = 20;
         }
 
         if (finalRoll === 20) {
-          const enemy = g.currentCombatEnemy;
+          const enemy = gameRef.current.currentCombatEnemy;
           let bossDefeated = false;
 
           if (enemy?.boss && enemy.hp > 1) {
             enemy.hp -= 2;
             if (enemy.hp <= 0) {
-              g.enemies = g.enemies.filter((mob) => mob !== enemy);
-              g.totalKills += 1;
+              gameRef.current.enemies = gameRef.current.enemies.filter((mob) => mob !== enemy);
+              gameRef.current.totalKills += 1;
               bossDefeated = true;
             }
           } else {
-            g.enemies = g.enemies.filter((mob) => mob !== enemy);
-            g.totalKills += 1;
+            gameRef.current.enemies = gameRef.current.enemies.filter((mob) => mob !== enemy);
+            gameRef.current.totalKills += 1;
             if (enemy?.boss) bossDefeated = true;
           }
 
-          g.streak += 1;
-          g.score += enemy?.boss ? 40 : enemy?.elite ? 20 : 10;
+          gameRef.current.streak += 1;
+          gameRef.current.score += enemy?.boss ? 40 : enemy?.elite ? 20 : 10;
 
-          if (g.streak > 0 && g.streak % 3 === 0) {
-            g.nextRollBonus = clamp(g.nextRollBonus + 1, 0, 3);
+          if (gameRef.current.streak > 0 && gameRef.current.streak % 3 === 0) {
+            gameRef.current.nextRollBonus = clamp(gameRef.current.nextRollBonus + 1, 0, 3);
             pushNotice("Streak reward: +1 next combat roll.");
           }
 
-          g.inCombat = false;
-          g.currentCombatEnemy = null;
-          g.rolling = false;
-          g.combatBonusUsed = 0;
+          gameRef.current.inCombat = false;
+          gameRef.current.currentCombatEnemy = null;
+          gameRef.current.rolling = false;
+          gameRef.current.combatBonusUsed = 0;
 
           updateMeta();
           applyLootDrop();
@@ -1334,7 +1420,7 @@ export default function DungeonRollMiniGame({ onBack }) {
 
             if (bossDefeated) {
               pushNotice("You defeated the dragon boss! Teleporting to the next level...");
-              g.bossFight = false;
+              gameRef.current.bossFight = false;
               nextLevel();
             }
           }, 650);
@@ -1347,27 +1433,27 @@ export default function DungeonRollMiniGame({ onBack }) {
             rolling: false,
             result: "Natural 1. The monster kills you.",
           }));
-          g.rolling = false;
+          gameRef.current.rolling = false;
           window.setTimeout(() => hitPlayer(), 700);
           return;
         }
 
-        if (finalRoll >= g.requiredRoll) {
-          const enemy = g.currentCombatEnemy;
+        if (finalRoll >= gameRef.current.requiredRoll) {
+          const enemy = gameRef.current.currentCombatEnemy;
           let bossDefeated = false;
 
           if (enemy?.boss && enemy.hp > 1) {
             enemy.hp -= 1;
-            g.inCombat = true;
-            g.currentCombatEnemy = enemy;
-            g.rolling = false;
-            g.requiredRoll = clamp(g.requiredRoll, 4, 20);
+            gameRef.current.inCombat = true;
+            gameRef.current.currentCombatEnemy = enemy;
+            gameRef.current.rolling = false;
+            gameRef.current.requiredRoll = clamp(gameRef.current.requiredRoll, 4, 20);
 
             setCombat((prev) => ({
               ...prev,
               rolling: false,
               result: `You wounded the boss. ${enemy.hp} HP left.`,
-              message: `Boss still stands: roll ${g.requiredRoll}+ for the next hit.`,
+              message: `Boss still stands: roll ${gameRef.current.requiredRoll}+ for the next hit.`,
             }));
 
             triggerFx("hit");
@@ -1376,22 +1462,22 @@ export default function DungeonRollMiniGame({ onBack }) {
             return;
           }
 
-          g.enemies = g.enemies.filter((mob) => mob !== enemy);
-          g.totalKills += 1;
+          gameRef.current.enemies = gameRef.current.enemies.filter((mob) => mob !== enemy);
+          gameRef.current.totalKills += 1;
           if (enemy?.boss) bossDefeated = true;
 
-          g.streak += 1;
-          g.score += enemy?.boss ? 40 : enemy?.elite ? 20 : 10;
+          gameRef.current.streak += 1;
+          gameRef.current.score += enemy?.boss ? 40 : enemy?.elite ? 20 : 10;
 
-          if (g.streak > 0 && g.streak % 3 === 0) {
-            g.nextRollBonus = clamp(g.nextRollBonus + 1, 0, 3);
+          if (gameRef.current.streak > 0 && gameRef.current.streak % 3 === 0) {
+            gameRef.current.nextRollBonus = clamp(gameRef.current.nextRollBonus + 1, 0, 3);
             pushNotice("Streak reward: +1 next combat roll.");
           }
 
-          g.inCombat = false;
-          g.currentCombatEnemy = null;
-          g.rolling = false;
-          g.combatBonusUsed = 0;
+          gameRef.current.inCombat = false;
+          gameRef.current.currentCombatEnemy = null;
+          gameRef.current.rolling = false;
+          gameRef.current.combatBonusUsed = 0;
 
           updateMeta();
           applyLootDrop();
@@ -1413,7 +1499,7 @@ export default function DungeonRollMiniGame({ onBack }) {
 
             if (bossDefeated) {
               pushNotice("You defeated the dragon boss! Teleporting to the next level...");
-              g.bossFight = false;
+              gameRef.current.bossFight = false;
               nextLevel();
             }
           }, 650);
@@ -1425,7 +1511,7 @@ export default function DungeonRollMiniGame({ onBack }) {
           rolling: false,
           result: `You rolled ${finalRoll}. Not enough. You die.`,
         }));
-        g.rolling = false;
+        gameRef.current.rolling = false;
         window.setTimeout(() => hitPlayer(), 700);
       };
 
@@ -1483,30 +1569,75 @@ export default function DungeonRollMiniGame({ onBack }) {
   }, [rebindKey]);
 
   useEffect(() => {
-    const g = gameRef.current;
-
-    if (typeof window !== "undefined") {
-      try {
-        const raw = window.localStorage.getItem(META_STORAGE_KEY);
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          g.bestLevel = Number(parsed.bestLevel) || 1;
-          g.bestStreak = Number(parsed.bestStreak) || 0;
-          g.bestScore = Number(parsed.bestScore) || 0;
-          g.totalKills = Number(parsed.totalKills) || 0;
-          g.totalWins = Number(parsed.totalWins) || 0;
-        }
-      } catch {
-        // Ignore corrupted data.
-      }
-    }
-
-    function onResize() {
-      setIsMobile(window.innerWidth <= 920);
-    }
-
-    function onKeyDown(e) {
+    function handleMenuKeys(e) {
       if (rebindKey) return;
+
+      if (menuState === "start") {
+        if (e.key === "ArrowUp" || e.key === "w" || e.key === "W") {
+          e.preventDefault();
+          setMenuIndex((prev) => (prev - 1 + startMenuItems.length) % startMenuItems.length);
+          return;
+        }
+
+        if (e.key === "ArrowDown" || e.key === "s" || e.key === "S") {
+          e.preventDefault();
+          setMenuIndex((prev) => (prev + 1) % startMenuItems.length);
+          return;
+        }
+
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+
+          if (menuIndex === 0) {
+            setDifficultyIndex(0);
+            setMenuState("difficulty");
+          } else if (menuIndex === 1) {
+            setMenuState("options");
+          } else if (menuIndex === 2) {
+            window.location.href = "/";
+          }
+        }
+        return;
+      }
+
+      if (menuState === "difficulty") {
+        if (e.key === "ArrowUp" || e.key === "w" || e.key === "W") {
+          e.preventDefault();
+          setDifficultyIndex((prev) => (prev - 1 + difficultyItems.length) % difficultyItems.length);
+          return;
+        }
+
+        if (e.key === "ArrowDown" || e.key === "s" || e.key === "S") {
+          e.preventDefault();
+          setDifficultyIndex((prev) => (prev + 1) % difficultyItems.length);
+          return;
+        }
+
+        if (e.key === "Escape") {
+          e.preventDefault();
+          setMenuState("start");
+          return;
+        }
+
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          const selected = difficultyItems[difficultyIndex];
+          if (selected.key === "back") {
+            setMenuState("start");
+            return;
+          }
+          setDifficulty(selected.key);
+          setMenuState("game");
+        }
+        return;
+      }
+
+      if (menuState === "options" && e.key === "Escape") {
+        e.preventDefault();
+        setMenuState("start");
+        return;
+      }
+
       if (menuState !== "game") return;
 
       const rollKeys = [keyBindings.roll, " ", "Space"];
@@ -1551,8 +1682,44 @@ export default function DungeonRollMiniGame({ onBack }) {
       }
     }
 
+    window.addEventListener("keydown", handleMenuKeys);
+    return () => window.removeEventListener("keydown", handleMenuKeys);
+  }, [
+    difficultyIndex,
+    difficultyItems,
+    handleRoll,
+    keyBindings,
+    menuIndex,
+    menuState,
+    movePlayer,
+    rebindKey,
+    startMenuItems,
+  ]);
+
+  useEffect(() => {
+    const g = gameRef.current;
+
+    if (typeof window !== "undefined") {
+      try {
+        const raw = window.localStorage.getItem(META_STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          g.bestLevel = Number(parsed.bestLevel) || 1;
+          g.bestStreak = Number(parsed.bestStreak) || 0;
+          g.bestScore = Number(parsed.bestScore) || 0;
+          g.totalKills = Number(parsed.totalKills) || 0;
+          g.totalWins = Number(parsed.totalWins) || 0;
+        }
+      } catch {
+        // Ignore corrupted data.
+      }
+    }
+
+    function onResize() {
+      setIsMobile(window.innerWidth <= 920);
+    }
+
     window.addEventListener("resize", onResize);
-    window.addEventListener("keydown", onKeyDown);
 
     function loop() {
       moveEnemies();
@@ -1563,17 +1730,16 @@ export default function DungeonRollMiniGame({ onBack }) {
 
     return () => {
       window.removeEventListener("resize", onResize);
-      window.removeEventListener("keydown", onKeyDown);
       window.cancelAnimationFrame(rafRef.current);
       window.clearInterval(rollerRef.current);
       fastRollResolverRef.current = null;
     };
-  }, [handleRoll, keyBindings, menuState, moveEnemies, movePlayer, rebindKey]);
+  }, [moveEnemies]);
 
   useEffect(() => {
-    if (menuState === "game" && difficulty) {
-      resetGame();
-    }
+    if (!difficulty) return;
+    if (menuState !== "game") return;
+    resetGame();
   }, [difficulty, menuState, resetGame]);
 
   useEffect(() => {
@@ -1666,53 +1832,21 @@ export default function DungeonRollMiniGame({ onBack }) {
     };
   }, []);
 
-  const shellStyle = mergeStyle(styles?.shell, {
-    display: "flex",
-    flexDirection: "column",
-    gap: 16,
-    maxWidth: 1200,
-    width: "100%",
-    margin: "0 auto",
-    padding: isMobile ? 12 : 20,
-  });
-
-  const hudGridStyle = mergeStyle(styles?.hud, {
-    display: "grid",
-    gridTemplateColumns: isMobile ? "repeat(2, minmax(0, 1fr))" : "repeat(6, minmax(0, 1fr))",
-    gap: 12,
-  });
-
-  const panelStyle = mergeStyle(styles?.panel, {
-    background: "rgba(15, 23, 42, 0.8)",
-    border: "1px solid rgba(148, 163, 184, 0.3)",
-    borderRadius: 12,
-    padding: 12,
-    color: "#fff",
-  });
-
-  const btnStyle = mergeStyle(styles?.btn, {
-    padding: "12px 18px",
-    borderRadius: 10,
-    border: "1px solid rgba(255,255,255,0.15)",
-    background: "#1e293b",
-    color: "#fff",
-    cursor: "pointer",
-    fontWeight: 700,
-  });
-
   return (
     <div style={mergeStyle(styles?.page, { minHeight: "100vh", color: "#fff", paddingBottom: 80 })}>
-      {shopOpen && (
-        <div style={mergeStyle(styles?.modal, {
-          position: "fixed",
-          inset: 0,
-          background: "rgba(2, 6, 23, 0.72)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          zIndex: 2000,
-          padding: 20,
-        })}>
+      {shopOpen && menuState === "game" && (
+        <div
+          style={mergeStyle(styles?.modal, {
+            position: "fixed",
+            inset: 0,
+            background: "rgba(2, 6, 23, 0.72)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 2000,
+            padding: 20,
+          })}
+        >
           <div
             style={{
               background: "linear-gradient(180deg, #1e293b, #2563eb 90%)",
@@ -1842,137 +1976,210 @@ export default function DungeonRollMiniGame({ onBack }) {
       )}
 
       {menuState === "start" && (
-        <div style={{ ...shellStyle, minHeight: "100vh", justifyContent: "center", alignItems: "center" }}>
-          <div style={mergeStyle(styles?.menuOverlay, { textAlign: "center" })}>
-            <div style={{ ...mergeStyle(styles?.logo, {}), fontSize: 64, marginBottom: 16 }}>
-              Dungeon Roll
-            </div>
-            <div style={{ ...mergeStyle(styles?.subtitle, {}), fontSize: 24, marginBottom: 32 }}>
-              NES-style browser mini-game
-            </div>
-            <button style={{ ...btnStyle, fontSize: 28, margin: 12 }} onClick={() => setMenuState("difficulty")}>
-              Start
-            </button>
-            <button style={{ ...btnStyle, fontSize: 28, margin: 12 }} onClick={() => setMenuState("options")}>
-              Options
-            </button>
-            <button
-              style={{ ...btnStyle, fontSize: 28, margin: 12 }}
-              onClick={() => {
-                if (typeof window !== "undefined") window.location.href = "/";
-              }}
-            >
-              Exit
-            </button>
-          </div>
-        </div>
-      )}
+        <div style={menuBgStyle}>
+          <div style={menuOverlayStyle} />
+          <div style={menuPanelStyle}>
+            <div style={menuButtonColumnStyle}>
+              {startMenuItems.map((item, index) => {
+                const active = menuIndex === index;
 
-      {menuState === "options" && (
-        <div style={{ ...shellStyle, minHeight: "100vh", justifyContent: "center", alignItems: "center" }}>
-          <div style={{ ...mergeStyle(styles?.menuOverlay, {}), maxWidth: 480, margin: "auto", width: "100%" }}>
-            <div style={{ ...mergeStyle(styles?.logo, {}), fontSize: 48, marginBottom: 16 }}>Options</div>
+                function handleClick() {
+                  setMenuIndex(index);
 
-            <div style={{ margin: "24px 0" }}>
-              <label style={{ fontSize: 20, marginBottom: 8, display: "block" }}>Audio Volume</label>
-              <input
-                type="range"
-                min={0}
-                max={1}
-                step={0.01}
-                value={audioVolume}
-                onChange={(e) => setAudioVolume(Number(e.target.value))}
-                style={{ width: "100%" }}
-              />
-              <div style={{ fontSize: 16, marginTop: 4 }}>{Math.round(audioVolume * 100)}%</div>
-            </div>
+                  if (item === "START") {
+                    setDifficultyIndex(0);
+                    setMenuState("difficulty");
+                  } else if (item === "OPTIONS") {
+                    setMenuState("options");
+                  } else if (item === "EXIT") {
+                    window.location.href = "/";
+                  }
+                }
 
-            <div style={{ margin: "24px 0" }}>
-              <label style={{ fontSize: 20, marginBottom: 8, display: "block" }}>Key Bindings</label>
-              {Object.entries(keyBindings).map(([action, key]) => (
-                <div key={action} style={{ margin: "8px 0", fontSize: 16 }}>
-                  <span style={{ fontWeight: "bold" }}>
-                    {action.charAt(0).toUpperCase() + action.slice(1)}:
-                  </span>
-                  {rebindKey === action ? (
-                    <span style={{ marginLeft: 8, color: "#38bdf8" }}>Press any key...</span>
-                  ) : (
-                    <span style={{ marginLeft: 8 }}>{key}</span>
-                  )}
+                return (
                   <button
-                    style={{ ...btnStyle, fontSize: 14, marginLeft: 12 }}
-                    onClick={() => setRebindKey(action)}
+                    key={item}
+                    onMouseEnter={() => setMenuIndex(index)}
+                    onClick={handleClick}
+                    style={menuButtonStyle(active)}
                   >
-                    Rebind
+                    <span style={menuDotStyle}>•</span>
+                    {item}
                   </button>
-                </div>
-              ))}
-              {rebindKey && (
-                <div style={{ fontSize: 14, color: "#ef4444", marginTop: 8 }}>
-                  Press a key to set binding for <b>{rebindKey}</b>
-                </div>
-              )}
+                );
+              })}
             </div>
-
-            <button
-              style={{ ...btnStyle, fontSize: 20, margin: 12 }}
-              onClick={() => {
-                setMenuState("start");
-                setRebindKey(null);
-              }}
-            >
-              Back
-            </button>
           </div>
         </div>
       )}
 
       {menuState === "difficulty" && (
-        <div style={{ ...shellStyle, minHeight: "100vh", justifyContent: "center", alignItems: "center" }}>
-          <div style={mergeStyle(styles?.menuOverlay, { textAlign: "center" })}>
-            <div style={{ ...mergeStyle(styles?.logo, {}), fontSize: 48, marginBottom: 16 }}>
-              Select Difficulty
+        <div style={menuBgStyle}>
+          <div style={menuOverlayStyle} />
+          <div
+            style={{
+              position: "relative",
+              zIndex: 2,
+              width: "100%",
+              minHeight: "100vh",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 20,
+            }}
+          >
+            <div
+              style={{
+                background: "rgba(2, 6, 23, 0.88)",
+                border: "2px solid rgba(255,255,255,0.18)",
+                borderRadius: 18,
+                padding: 32,
+                width: "min(520px, 92%)",
+                textAlign: "center",
+                boxShadow: "0 20px 50px rgba(0,0,0,0.45)",
+              }}
+            >
+              <div style={{ fontSize: 38, fontWeight: 900, marginBottom: 20 }}>
+                Select Difficulty
+              </div>
+
+              {difficultyItems.map((item, index) => {
+                const active = difficultyIndex === index;
+                return (
+                  <button
+                    key={item.key}
+                    onMouseEnter={() => setDifficultyIndex(index)}
+                    style={{
+                      ...btnStyle,
+                      width: "100%",
+                      marginBottom: 12,
+                      border: active
+                        ? "2px solid #facc15"
+                        : "1px solid rgba(255,255,255,0.15)",
+                      boxShadow: active ? "0 0 14px rgba(250,204,21,0.35)" : "none",
+                    }}
+                    onClick={() => {
+                      if (item.key === "back") {
+                        setMenuState("start");
+                        return;
+                      }
+                      setDifficulty(item.key);
+                      setMenuState("game");
+                    }}
+                  >
+                    {item.label}
+                  </button>
+                );
+              })}
             </div>
+          </div>
+        </div>
+      )}
 
-            <button
-              style={{ ...btnStyle, fontSize: 24, margin: 12 }}
-              onClick={() => {
-                setDifficulty("easy");
-                setMenuState("game");
+      {menuState === "options" && (
+        <div style={menuBgStyle}>
+          <div style={menuOverlayStyle} />
+          <div
+            style={{
+              position: "relative",
+              zIndex: 2,
+              width: "100%",
+              minHeight: "100vh",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 20,
+            }}
+          >
+            <div
+              style={{
+                background: "rgba(2, 6, 23, 0.88)",
+                border: "2px solid rgba(255,255,255,0.18)",
+                borderRadius: 18,
+                padding: 32,
+                width: "min(560px, 92%)",
+                boxShadow: "0 20px 50px rgba(0,0,0,0.45)",
               }}
             >
-              Easy (10 Levels)
-            </button>
+              <div style={{ fontSize: 38, fontWeight: 900, marginBottom: 24, textAlign: "center" }}>
+                Options
+              </div>
 
-            <button
-              style={{ ...btnStyle, fontSize: 24, margin: 12 }}
-              onClick={() => {
-                setDifficulty("medium");
-                setMenuState("game");
-              }}
-            >
-              Medium (25 Levels)
-            </button>
+              <div style={{ margin: "24px 0" }}>
+                <label style={{ fontSize: 20, marginBottom: 8, display: "block" }}>
+                  Audio Volume
+                </label>
+                <input
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  value={audioVolume}
+                  onChange={(e) => setAudioVolume(Number(e.target.value))}
+                  style={{ width: "100%" }}
+                />
+                <div style={{ fontSize: 16, marginTop: 8 }}>
+                  {Math.round(audioVolume * 100)}%
+                </div>
+              </div>
 
-            <button
-              style={{ ...btnStyle, fontSize: 24, margin: 12 }}
-              onClick={() => {
-                setDifficulty("hard");
-                setMenuState("game");
-              }}
-            >
-              Hard (50 Levels)
-            </button>
+              <div style={{ margin: "24px 0" }}>
+                <label style={{ fontSize: 20, marginBottom: 8, display: "block" }}>
+                  Key Bindings
+                </label>
+                {Object.entries(keyBindings).map(([action, key]) => (
+                  <div key={action} style={{ margin: "10px 0", fontSize: 16 }}>
+                    <span style={{ fontWeight: "bold" }}>
+                      {action.charAt(0).toUpperCase() + action.slice(1)}:
+                    </span>
+                    {rebindKey === action ? (
+                      <span style={{ marginLeft: 8, color: "#38bdf8" }}>Press any key...</span>
+                    ) : (
+                      <span style={{ marginLeft: 8 }}>{key}</span>
+                    )}
+                    <button
+                      style={{ ...btnStyle, fontSize: 14, marginLeft: 12 }}
+                      onClick={() => setRebindKey(action)}
+                    >
+                      Rebind
+                    </button>
+                  </div>
+                ))}
+                {rebindKey && (
+                  <div style={{ fontSize: 14, color: "#ef4444", marginTop: 8 }}>
+                    Press a key to set binding for <b>{rebindKey}</b>
+                  </div>
+                )}
+              </div>
 
-            <button style={{ ...btnStyle, fontSize: 20, margin: 12 }} onClick={() => setMenuState("start")}>
-              Back
-            </button>
+              <button
+                style={{ ...btnStyle, width: "100%" }}
+                onClick={() => {
+                  setRebindKey(null);
+                  setMenuState("start");
+                }}
+              >
+                Back
+              </button>
+            </div>
           </div>
         </div>
       )}
 
       {menuState === "game" && (
-        <div style={shellStyle}>
+        <div
+          style={mergeStyle(styles?.page, {
+            minHeight: "100vh",
+            color: "#fff",
+            padding: isMobile ? 12 : 20,
+            display: "flex",
+            flexDirection: "column",
+            gap: 16,
+            maxWidth: 1200,
+            width: "100%",
+            margin: "0 auto",
+          })}
+        >
           <div
             style={mergeStyle(styles?.titlebar, {
               display: "flex",
@@ -2000,7 +2207,15 @@ export default function DungeonRollMiniGame({ onBack }) {
             </div>
           </div>
 
-          <div style={hudGridStyle}>
+          <div
+            style={mergeStyle(styles?.hud, {
+              display: "grid",
+              gridTemplateColumns: isMobile
+                ? "repeat(2, minmax(0, 1fr))"
+                : "repeat(6, minmax(0, 1fr))",
+              gap: 12,
+            })}
+          >
             <div style={panelStyle}>
               <div style={styles?.label}>Level</div>
               <div style={styles?.value}>
