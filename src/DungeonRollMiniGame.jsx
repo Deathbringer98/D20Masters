@@ -36,12 +36,443 @@ function getMaxLevelsForDifficulty(difficulty) {
   return MAX_LEVELS;
 }
 
-export default function DungeonRollMiniGame({ onBack }) {
+function PixelShopkeeperIcon() {
+  return (
+    <div
+      style={{
+        width: 92,
+        height: 92,
+        position: "relative",
+        margin: "0 auto 12px",
+      }}
+    >
+      <div
+        style={{
+          width: 50,
+          height: 50,
+          background: "#2563eb",
+          position: "absolute",
+          top: 18,
+          left: 21,
+          border: "4px solid #93c5fd",
+          boxShadow: "0 0 0 4px #0f172a",
+        }}
+      />
+      <div
+        style={{
+          width: 28,
+          height: 10,
+          background: "#38bdf8",
+          position: "absolute",
+          top: 8,
+          left: 32,
+        }}
+      />
+      <div
+        style={{
+          width: 8,
+          height: 8,
+          background: "#fff",
+          position: "absolute",
+          top: 34,
+          left: 34,
+        }}
+      />
+      <div
+        style={{
+          width: 8,
+          height: 8,
+          background: "#fff",
+          position: "absolute",
+          top: 34,
+          left: 50,
+        }}
+      />
+      <div
+        style={{
+          width: 24,
+          height: 6,
+          background: "#0f172a",
+          position: "absolute",
+          top: 54,
+          left: 34,
+        }}
+      />
+    </div>
+  );
+}
 
-  // Always start at main menu and clear difficulty on mount (fixes dev hot reload state persistence)
+function StartMenuScreen({
+  menuBgStyle,
+  menuOverlayStyle,
+  menuPanelStyle,
+  menuButtonColumnStyle,
+  menuButtonStyle,
+  menuDotStyle,
+  startMenuItems,
+  menuIndex,
+  setMenuIndex,
+  onStart,
+  onOptions,
+  onExit,
+}) {
+  return (
+    <div style={menuBgStyle}>
+      <div style={menuOverlayStyle} />
+      <div style={menuPanelStyle}>
+        <div style={menuButtonColumnStyle}>
+          {startMenuItems.map((item, index) => {
+            const active = menuIndex === index;
+
+            function handleClick() {
+              setMenuIndex(index);
+
+              if (item === "START") onStart();
+              else if (item === "OPTIONS") onOptions();
+              else if (item === "EXIT") onExit();
+            }
+
+            return (
+              <button
+                key={item}
+                onMouseEnter={() => setMenuIndex(index)}
+                onClick={handleClick}
+                style={menuButtonStyle(active)}
+              >
+                <span style={menuDotStyle}>•</span>
+                {item}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DifficultyMenuScreen({
+  menuBgStyle,
+  menuOverlayStyle,
+  difficultyItems,
+  difficultyIndex,
+  setDifficultyIndex,
+  btnStyle,
+  onBack,
+  onChooseDifficulty,
+}) {
+  return (
+    <div style={menuBgStyle}>
+      <div style={menuOverlayStyle} />
+      <div
+        style={{
+          position: "relative",
+          zIndex: 2,
+          width: "100%",
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: 20,
+        }}
+      >
+        <div
+          style={{
+            background: "rgba(2, 6, 23, 0.88)",
+            border: "2px solid rgba(255,255,255,0.18)",
+            borderRadius: 18,
+            padding: 32,
+            width: "min(520px, 92%)",
+            textAlign: "center",
+            boxShadow: "0 20px 50px rgba(0,0,0,0.45)",
+          }}
+        >
+          <div style={{ fontSize: 38, fontWeight: 900, marginBottom: 20 }}>
+            Select Difficulty
+          </div>
+
+          {difficultyItems.map((item, index) => {
+            const active = difficultyIndex === index;
+            return (
+              <button
+                key={item.key}
+                onMouseEnter={() => setDifficultyIndex(index)}
+                style={{
+                  ...btnStyle,
+                  width: "100%",
+                  marginBottom: 12,
+                  border: active
+                    ? "2px solid #facc15"
+                    : "1px solid rgba(255,255,255,0.15)",
+                  boxShadow: active ? "0 0 14px rgba(250,204,21,0.35)" : "none",
+                }}
+                onClick={() => {
+                  if (item.key === "back") onBack();
+                  else onChooseDifficulty(item.key);
+                }}
+              >
+                {item.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function OptionsMenuScreen({
+  menuBgStyle,
+  menuOverlayStyle,
+  audioVolume,
+  setAudioVolume,
+  keyBindings,
+  rebindKey,
+  setRebindKey,
+  btnStyle,
+  onBack,
+}) {
+  return (
+    <div style={menuBgStyle}>
+      <div style={menuOverlayStyle} />
+      <div
+        style={{
+          position: "relative",
+          zIndex: 2,
+          width: "100%",
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: 20,
+        }}
+      >
+        <div
+          style={{
+            background: "rgba(2, 6, 23, 0.88)",
+            border: "2px solid rgba(255,255,255,0.18)",
+            borderRadius: 18,
+            padding: 32,
+            width: "min(560px, 92%)",
+            boxShadow: "0 20px 50px rgba(0,0,0,0.45)",
+          }}
+        >
+          <div
+            style={{
+              fontSize: 38,
+              fontWeight: 900,
+              marginBottom: 24,
+              textAlign: "center",
+            }}
+          >
+            Options
+          </div>
+
+          <div style={{ margin: "24px 0" }}>
+            <label style={{ fontSize: 20, marginBottom: 8, display: "block" }}>
+              Audio Volume
+            </label>
+            <input
+              type="range"
+              min={0}
+              max={1}
+              step={0.01}
+              value={audioVolume}
+              onChange={(e) => setAudioVolume(Number(e.target.value))}
+              style={{ width: "100%" }}
+            />
+            <div style={{ fontSize: 16, marginTop: 8 }}>
+              {Math.round(audioVolume * 100)}%
+            </div>
+          </div>
+
+          <div style={{ margin: "24px 0" }}>
+            <label style={{ fontSize: 20, marginBottom: 8, display: "block" }}>
+              Key Bindings
+            </label>
+            {Object.entries(keyBindings).map(([action, key]) => (
+              <div key={action} style={{ margin: "10px 0", fontSize: 16 }}>
+                <span style={{ fontWeight: "bold" }}>
+                  {action.charAt(0).toUpperCase() + action.slice(1)}:
+                </span>
+                {rebindKey === action ? (
+                  <span style={{ marginLeft: 8, color: "#38bdf8" }}>
+                    Press any key...
+                  </span>
+                ) : (
+                  <span style={{ marginLeft: 8 }}>{key}</span>
+                )}
+                <button
+                  style={{ ...btnStyle, fontSize: 14, marginLeft: 12 }}
+                  onClick={() => setRebindKey(action)}
+                >
+                  Rebind
+                </button>
+              </div>
+            ))}
+            {rebindKey && (
+              <div style={{ fontSize: 14, color: "#ef4444", marginTop: 8 }}>
+                Press a key to set binding for <b>{rebindKey}</b>
+              </div>
+            )}
+          </div>
+
+          <button style={{ ...btnStyle, width: "100%" }} onClick={onBack}>
+            Back
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ShopModal({ open, shopItems, playerInventory, btnStyle, onBuy, onClose }) {
+  if (!open) return null;
+
+  return (
+    <div
+      style={mergeStyle(styles?.modal, {
+        position: "fixed",
+        inset: 0,
+        background: "rgba(2, 6, 23, 0.72)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 2000,
+        padding: 20,
+      })}
+    >
+      <div
+        style={{
+          width: "min(680px, 100%)",
+          background: "linear-gradient(180deg, #1e293b, #0f172a)",
+          border: "4px solid #38bdf8",
+          boxShadow: "0 0 0 4px #0f172a, 0 0 0 8px #1d4ed8, 0 18px 60px rgba(0,0,0,0.6)",
+          borderRadius: 16,
+          padding: 24,
+          textAlign: "center",
+        }}
+      >
+        <PixelShopkeeperIcon />
+        <div style={{ fontSize: 18, color: "#38bdf8", marginTop: 8 }}>Shopkeeper</div>
+
+        <div style={{ fontSize: 24, fontWeight: 700, marginBottom: 12 }}>
+          Welcome to the NES Shop!
+        </div>
+        <div style={{ fontSize: 16, marginBottom: 18 }}>Choose one item to buy:</div>
+
+        <div style={{ display: "grid", gap: 18 }}>
+          {shopItems.map((item) => {
+            const disabled = playerInventory[item.id] || playerInventory._shopBought;
+            return (
+              <div
+                key={item.id}
+                style={{
+                  background: "#0f172a",
+                  border: "2px solid #38bdf8",
+                  borderRadius: 8,
+                  padding: "14px 10px",
+                  boxShadow: "0 0 8px #2563eb",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  fontSize: 16,
+                }}
+              >
+                <div style={{ fontWeight: 700, color: "#fff", fontSize: 18 }}>{item.name}</div>
+                <div style={{ color: "#facc15", fontSize: 14, marginTop: 4 }}>
+                  {item.price} gold
+                </div>
+                <div style={{ color: "#cbd5e1", fontSize: 14, margin: "6px 0 10px 0" }}>
+                  {item.desc}
+                </div>
+                <button
+                  style={{ ...btnStyle, width: 220, fontSize: 16, margin: 0 }}
+                  disabled={disabled}
+                  onClick={() => onBuy(item)}
+                >
+                  {playerInventory[item.id]
+                    ? "Purchased"
+                    : playerInventory._shopBought
+                    ? "One item already bought"
+                    : "Buy"}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+
+        <button
+          style={{ ...btnStyle, width: 180, fontSize: 16, marginTop: 24 }}
+          onClick={onClose}
+        >
+          Leave Shop
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function CombatModal({ open, combat, btnStyle, onRoll }) {
+  if (!open) return null;
+
+  return (
+    <div
+      style={mergeStyle(styles?.modal, {
+        position: "fixed",
+        inset: 0,
+        background: "rgba(2, 6, 23, 0.72)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 1800,
+        padding: 20,
+      })}
+    >
+      <div
+        style={{
+          background: "#0f172a",
+          border: "2px solid rgba(148,163,184,0.35)",
+          borderRadius: 16,
+          padding: 24,
+          width: "min(420px, 100%)",
+          textAlign: "center",
+          boxShadow: "0 20px 50px rgba(0,0,0,0.45)",
+        }}
+      >
+        <div style={{ fontSize: 22, fontWeight: 800, marginBottom: 12 }}>Combat</div>
+        <div style={{ color: "#cbd5e1", marginBottom: 18 }}>{combat.message}</div>
+
+        <div
+          style={{
+            fontSize: 64,
+            fontWeight: 900,
+            lineHeight: 1,
+            marginBottom: 18,
+            color: combat.rolling ? "#facc15" : "#fff",
+          }}
+        >
+          {combat.diceDisplay || "?"}
+        </div>
+
+        <div style={{ minHeight: 24, color: "#93c5fd", marginBottom: 18 }}>
+          {combat.result}
+        </div>
+
+        <button
+          style={{ ...btnStyle, fontSize: 20, minWidth: 180 }}
+          onClick={() => onRoll(false)}
+          disabled={combat.rolling}
+        >
+          {combat.rolling ? "Rolling..." : "Roll"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export default function DungeonRollMiniGame({ onBack }) {
   const [menuState, setMenuState] = useState("start"); // start | options | difficulty | game
   const [difficulty, setDifficulty] = useState(null);
-  // Title screen image
   const titleScreenUrl = "/title-screen.png";
 
   const shopItems = useMemo(
@@ -81,11 +512,6 @@ export default function DungeonRollMiniGame({ onBack }) {
 
   const [menuIndex, setMenuIndex] = useState(0);
   const [difficultyIndex, setDifficultyIndex] = useState(0);
-    // On mount, always force menuState to 'start' and difficulty to null
-    useEffect(() => {
-      setMenuState("start");
-      setDifficulty(null);
-    }, []);
   const [audioVolume, setAudioVolume] = useState(0.45);
   const [rebindKey, setRebindKey] = useState(null);
   const [keyBindings, setKeyBindings] = useState({
@@ -123,6 +549,22 @@ export default function DungeonRollMiniGame({ onBack }) {
   const rollSfxRef = useRef(null);
   const killSfxRef = useRef(null);
   const deathSfxRef = useRef(null);
+
+  useEffect(() => {
+    setMenuState("start");
+    setDifficulty(null);
+  }, []);
+
+  const leaveToHome = useCallback(() => {
+    if (typeof onBack === "function") {
+      onBack();
+      return;
+    }
+
+    if (typeof window !== "undefined") {
+      window.location.href = "/";
+    }
+  }, [onBack]);
 
   const menuBgStyle = {
     minHeight: "100vh",
@@ -169,9 +611,7 @@ export default function DungeonRollMiniGame({ onBack }) {
     fontWeight: 900,
     fontFamily: '"Courier New", monospace',
     letterSpacing: "0.03em",
-    textShadow: active
-      ? "0 0 12px #facc15, 4px 4px 0 #000"
-      : "4px 4px 0 #000",
+    textShadow: active ? "0 0 12px #facc15, 4px 4px 0 #000" : "4px 4px 0 #000",
     cursor: "pointer",
     textAlign: "left",
     padding: 0,
@@ -231,6 +671,7 @@ export default function DungeonRollMiniGame({ onBack }) {
 
   const persistMeta = useCallback(() => {
     if (typeof window === "undefined") return;
+
     const g = gameRef.current;
     window.localStorage.setItem(
       META_STORAGE_KEY,
@@ -781,6 +1222,7 @@ export default function DungeonRollMiniGame({ onBack }) {
           coordKey(g.exitTile.x, g.exitTile.y),
           ...(g.shield ? [coordKey(g.shield.x, g.shield.y)] : []),
           ...(g.shrine ? [coordKey(g.shrine.x, g.shrine.y)] : []),
+          ...(g.shopkeeper ? [coordKey(g.shopkeeper.x, g.shopkeeper.y)] : []),
           ...g.events.map((tile) => coordKey(tile.x, tile.y)),
           ...g.enemies.map((enemy) => coordKey(enemy.x, enemy.y)),
         ]);
@@ -833,15 +1275,8 @@ export default function DungeonRollMiniGame({ onBack }) {
         g.shield = null;
         g.shrine = null;
         g.exitTile = { x: -1, y: -1 };
-
-        if (rand(1, 100) <= 40) {
-          const sx = rand(2, GRID_SIZE - 3);
-          const sy = rand(2, GRID_SIZE - 3);
-          g.shopkeeper = { x: sx, y: sy };
-          setShopOpen(false);
-        } else {
-          g.shopkeeper = null;
-        }
+        g.shopkeeper = null;
+        setShopOpen(false);
         return;
       }
 
@@ -961,8 +1396,7 @@ export default function DungeonRollMiniGame({ onBack }) {
     const g = gameRef.current;
     let ready = false;
 
-    g.levelModifier =
-      g.currentLevel === 1 ? LEVEL_MODIFIERS[0] : pickRandom(LEVEL_MODIFIERS);
+    g.levelModifier = g.currentLevel === 1 ? LEVEL_MODIFIERS[0] : pickRandom(LEVEL_MODIFIERS);
     g.perfectClearClaimed = false;
     g._autoNat20Buff = false;
     g.shopkeeper = null;
@@ -1008,7 +1442,15 @@ export default function DungeonRollMiniGame({ onBack }) {
         const shieldCell = randomFloorCell(used);
         if (reachable(g.player, shieldCell)) {
           g.shield = shieldCell;
-          used.add(coordKey(shieldCell.x, shieldCell.y));
+          used.add(coordKey(g.shield.x, g.shield.y));
+        }
+      }
+
+      if (g.shopLevels?.includes(g.currentLevel) && !g._shopVisitedThisLevel) {
+        const shopCell = randomFloorCell(used);
+        if (reachable(g.player, shopCell)) {
+          g.shopkeeper = shopCell;
+          used.add(coordKey(shopCell.x, shopCell.y));
         }
       }
 
@@ -1027,8 +1469,7 @@ export default function DungeonRollMiniGame({ onBack }) {
 
         used.add(coordKey(enemyPos.x, enemyPos.y));
 
-        const baseDelay =
-          g.levelModifier?.id === "haste" ? rand(14, 24) : rand(20, 36);
+        const baseDelay = g.levelModifier?.id === "haste" ? rand(14, 24) : rand(20, 36);
 
         g.enemies.push({
           x: enemyPos.x,
@@ -1064,10 +1505,6 @@ export default function DungeonRollMiniGame({ onBack }) {
       ready = true;
     }
 
-    if (g.shopLevels?.includes(g.currentLevel)) {
-      setShopOpen(true);
-    }
-
     g.hasKey = false;
     g.inCombat = false;
     g.currentCombatEnemy = null;
@@ -1096,6 +1533,7 @@ export default function DungeonRollMiniGame({ onBack }) {
       setPlayerInventory((inv) => ({ ...inv, skip: false }));
       pushNotice("Level Skip potion used.");
       g.currentLevel += 1;
+      g._shopVisitedThisLevel = false;
       generateLevel();
       return;
     }
@@ -1112,6 +1550,7 @@ export default function DungeonRollMiniGame({ onBack }) {
     }
 
     g.currentLevel += 1;
+    g._shopVisitedThisLevel = false;
     generateLevel();
   }, [draw, generateLevel, playerInventory.skip, pushNotice, updateHud, updateMeta]);
 
@@ -1119,7 +1558,7 @@ export default function DungeonRollMiniGame({ onBack }) {
     (dx, dy) => {
       const g = gameRef.current;
       if (menuState !== "game") return;
-      if (g.gameOver || g.victory || g.inCombat) return;
+      if (shopOpen || g.gameOver || g.victory || g.inCombat) return;
 
       const nx = g.player.x + dx;
       const ny = g.player.y + dy;
@@ -1129,6 +1568,7 @@ export default function DungeonRollMiniGame({ onBack }) {
       g.player.y = ny;
 
       if (g.shopkeeper && g.player.x === g.shopkeeper.x && g.player.y === g.shopkeeper.y) {
+        g._shopVisitedThisLevel = true;
         setShopOpen(true);
         g.shopkeeper = null;
         updateHud();
@@ -1195,6 +1635,7 @@ export default function DungeonRollMiniGame({ onBack }) {
       pushNotice,
       resolveEventTile,
       resolveShrine,
+      shopOpen,
       startCombat,
       updateHud,
       updateMeta,
@@ -1204,7 +1645,7 @@ export default function DungeonRollMiniGame({ onBack }) {
   const moveEnemies = useCallback(() => {
     const g = gameRef.current;
     if (menuState !== "game") return;
-    if (g.gameOver || g.victory || g.inCombat) return;
+    if (shopOpen || g.gameOver || g.victory || g.inCombat) return;
 
     const dirs = [
       [1, 0],
@@ -1245,6 +1686,7 @@ export default function DungeonRollMiniGame({ onBack }) {
               !(pos.x === g.key.x && pos.y === g.key.y) &&
               !(g.shield && pos.x === g.shield.x && pos.y === g.shield.y) &&
               !(g.shrine && pos.x === g.shrine.x && pos.y === g.shrine.y) &&
+              !(g.shopkeeper && pos.x === g.shopkeeper.x && pos.y === g.shopkeeper.y) &&
               !g.events.some((tile) => tile.x === pos.x && tile.y === pos.y)
           );
 
@@ -1263,61 +1705,105 @@ export default function DungeonRollMiniGame({ onBack }) {
     }
 
     draw();
-  }, [draw, isWalkable, menuState, startCombat]);
+  }, [draw, isWalkable, menuState, shopOpen, startCombat]);
 
-  const resetGame = useCallback(() => {
-    const g = gameRef.current;
+  const resetGame = useCallback(
+    (selectedDifficulty) => {
+      const difficultyToUse = selectedDifficulty || difficulty || "easy";
+      const g = gameRef.current;
 
-    g.maxLevels = getMaxLevelsForDifficulty(difficulty);
-    g.shopLevels = [];
+      g.maxLevels = getMaxLevelsForDifficulty(difficultyToUse);
+      g.shopLevels = [];
 
-    if (difficulty === "easy") {
-      g.shopLevels = [rand(1, 5)];
-    } else if (difficulty === "medium") {
-      g.shopLevels = [rand(2, 10), rand(11, 20)];
-    } else if (difficulty === "hard") {
-      g.shopLevels = [rand(2, 15), rand(16, 30), rand(31, 45)];
-    }
+      if (difficultyToUse === "easy") {
+        g.shopLevels = [rand(1, 5)];
+      } else if (difficultyToUse === "medium") {
+        g.shopLevels = [rand(2, 10), rand(11, 20)];
+      } else if (difficultyToUse === "hard") {
+        g.shopLevels = [rand(2, 15), rand(16, 30), rand(31, 45)];
+      }
 
-    setShopOpen(false);
-    setPlayerInventory({
-      vision: false,
-      standing: false,
-      skip: false,
-      _shopBought: false,
-    });
+      setShopOpen(false);
+      setPlayerInventory({
+        vision: false,
+        standing: false,
+        skip: false,
+        _shopBought: false,
+      });
 
-    g.currentLevel = 1;
-    g.lives = 3;
-    g.hasKey = false;
-    g.hasShield = false;
-    g.shieldCharges = 0;
-    g.streak = 0;
-    g.score = 0;
-    g.nextRollBonus = 0;
-    g.shield = null;
-    g.shrine = null;
-    g.events = [];
-    g.gameOver = false;
-    g.victory = false;
-    g.inCombat = false;
-    g.currentCombatEnemy = null;
-    g.requiredRoll = 0;
-    g.combatBonusUsed = 0;
-    g._autoNat20Buff = false;
-    g._standingUsed = false;
-    g._skipUsed = false;
-    g.shopkeeper = null;
+      g.currentLevel = 1;
+      g.lives = 3;
+      g.hasKey = false;
+      g.hasShield = false;
+      g.shieldCharges = 0;
+      g.streak = 0;
+      g.score = 0;
+      g.nextRollBonus = 0;
+      g.shield = null;
+      g.shrine = null;
+      g.events = [];
+      g.gameOver = false;
+      g.victory = false;
+      g.inCombat = false;
+      g.currentCombatEnemy = null;
+      g.requiredRoll = 0;
+      g.combatBonusUsed = 0;
+      g._autoNat20Buff = false;
+      g._standingUsed = false;
+      g._skipUsed = false;
+      g._shopVisitedThisLevel = false;
+      g.shopkeeper = null;
 
-    pushNotice("A new quest begins.");
-    generateLevel();
-  }, [difficulty, generateLevel, pushNotice]);
+      pushNotice("A new quest begins.");
+      generateLevel();
+    },
+    [difficulty, generateLevel, pushNotice]
+  );
+
+  const beginGame = useCallback(
+    (selectedDifficulty) => {
+      setDifficulty(selectedDifficulty);
+      setShopOpen(false);
+      resetCombatState();
+      setMenuState("game");
+
+      const kickoff = () => resetGame(selectedDifficulty);
+
+      if (typeof window !== "undefined") {
+        window.setTimeout(kickoff, 0);
+      } else {
+        kickoff();
+      }
+    },
+    [resetCombatState, resetGame]
+  );
 
   const handleRestartOverlayClick = useCallback(() => {
     const g = gameRef.current;
     if (!g.gameOver && !g.victory) return;
     resetGame();
   }, [resetGame]);
+
+  const buyShopItem = useCallback(
+    (item) => {
+      if (!item) return;
+
+      setPlayerInventory((inv) => {
+        if (inv[item.id] || inv._shopBought) return inv;
+        return {
+          ...inv,
+          [item.id]: true,
+          _shopBought: true,
+        };
+      });
+
+      pushNotice(`Purchased ${item.name}.`);
+      setShopOpen(false);
+      updateHud();
+      draw();
+    },
+    [draw, pushNotice, updateHud]
+  );
 
   const handleRoll = useCallback(
     (skipAnimation = false) => {
@@ -1369,13 +1855,11 @@ export default function DungeonRollMiniGame({ onBack }) {
         });
       };
 
-      const resolveFinalRoll = (finalRoll) => {
+      const resolveFinalRoll = (rolledValue) => {
         fastRollResolverRef.current = null;
-        setCombat((prev) => ({ ...prev, diceDisplay: String(finalRoll) }));
 
-        if (gameRef.current._autoNat20Buff) {
-          finalRoll = 20;
-        }
+        const finalRoll = gameRef.current._autoNat20Buff ? 20 : rolledValue;
+        setCombat((prev) => ({ ...prev, diceDisplay: String(finalRoll) }));
 
         if (finalRoll === 20) {
           const enemy = gameRef.current.currentCombatEnemy;
@@ -1602,7 +2086,7 @@ export default function DungeonRollMiniGame({ onBack }) {
           } else if (menuIndex === 1) {
             setMenuState("options");
           } else if (menuIndex === 2) {
-            window.location.href = "/";
+            leaveToHome();
           }
         }
         return;
@@ -1634,8 +2118,7 @@ export default function DungeonRollMiniGame({ onBack }) {
             setMenuState("start");
             return;
           }
-          setDifficulty(selected.key);
-          setMenuState("game");
+          beginGame(selected.key);
         }
         return;
       }
@@ -1647,6 +2130,14 @@ export default function DungeonRollMiniGame({ onBack }) {
       }
 
       if (menuState !== "game") return;
+
+      if (shopOpen) {
+        if (e.key === "Escape") {
+          e.preventDefault();
+          setShopOpen(false);
+        }
+        return;
+      }
 
       const rollKeys = [keyBindings.roll, " ", "Space"];
       if (rollKeys.includes(e.key) || rollKeys.includes(e.code)) {
@@ -1693,14 +2184,17 @@ export default function DungeonRollMiniGame({ onBack }) {
     window.addEventListener("keydown", handleMenuKeys);
     return () => window.removeEventListener("keydown", handleMenuKeys);
   }, [
+    beginGame,
     difficultyIndex,
     difficultyItems,
     handleRoll,
     keyBindings,
+    leaveToHome,
     menuIndex,
     menuState,
     movePlayer,
     rebindKey,
+    shopOpen,
     startMenuItems,
   ]);
 
@@ -1723,6 +2217,8 @@ export default function DungeonRollMiniGame({ onBack }) {
       }
     }
 
+    updateHud();
+
     function onResize() {
       setIsMobile(window.innerWidth <= 920);
     }
@@ -1742,9 +2238,7 @@ export default function DungeonRollMiniGame({ onBack }) {
       window.clearInterval(rollerRef.current);
       fastRollResolverRef.current = null;
     };
-  }, [moveEnemies]);
-
-
+  }, [moveEnemies, updateHud]);
 
   useEffect(() => {
     let music = null;
@@ -1836,342 +2330,72 @@ export default function DungeonRollMiniGame({ onBack }) {
     };
   }, []);
 
+  const pageStyle = mergeStyle(styles?.page, {
+    minHeight: "100vh",
+    color: "#fff",
+    padding: 0,
+    display: "block",
+  });
+
   return (
-    <>
-      <div style={mergeStyle(styles?.page, { minHeight: "100vh", color: "#fff", paddingBottom: 80 })}>
-        {shopOpen && menuState === "game" && (
-        <div
-          style={mergeStyle(styles?.modal, {
-            position: "fixed",
-            inset: 0,
-            background: "rgba(2, 6, 23, 0.72)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 2000,
-            padding: 20,
-          })}
-        >
-          <div
-            </div>
-            <a
-              href="https://buymeacoffee.com/ghostbyte"
-              <>
-                <div style={mergeStyle(styles?.page, { minHeight: "100vh", color: "#fff", paddingBottom: 80 })}>
-                  {shopOpen && menuState === "game" && (
-                    <div
-                      style={mergeStyle(styles?.modal, {
-                        position: "fixed",
-                        inset: 0,
-                        background: "rgba(2, 6, 23, 0.72)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        zIndex: 2000,
-                        padding: 20,
-                      })}
-                    >
-                      <div>{/* ...existing shop modal content... */}</div>
-                    </div>
-                  )}
-                  {/* ...rest of main content... */}
-                </div>
-                <a
-                  href="https://buymeacoffee.com/ghostbyte"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    position: "fixed",
-                    bottom: 24,
-                    right: 24,
-                    zIndex: 99999,
-                    background: "#ffdd00",
-                    color: "#333",
-                    borderRadius: 8,
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-                    padding: "12px 24px",
-                    fontWeight: "bold",
-                    fontSize: 18,
-                    textDecoration: "none",
-                    transition: "background 0.2s",
-                    border: "2px solid #fff",
-                    pointerEvents: "auto"
-                  }}
-                >
-                  ☕ Buy Me a Coffee
-                </a>
-              </>
-                  }}
-                />
-                <div
-                  style={{
-                    width: 8,
-                    height: 8,
-                    background: "#0f172a",
-                    position: "absolute",
-                    top: 28,
-                    left: 40,
-                    borderRadius: 2,
-                  }}
-                />
-                <div
-                  style={{
-                    width: 24,
-                    height: 4,
-                    background: "#2563eb",
-                    position: "absolute",
-                    top: 48,
-                    left: 20,
-                    borderRadius: 2,
-                  }}
-                />
-              </div>
-              <div style={{ fontSize: 18, color: "#38bdf8", marginTop: 8 }}>Shopkeeper</div>
-            </div>
-
-            <div style={{ fontSize: 24, fontWeight: 700, marginBottom: 12 }}>
-              Welcome to the NES Shop!
-            </div>
-            <div style={{ fontSize: 16, marginBottom: 18 }}>Choose one item to buy:</div>
-
-            <div style={{ display: "grid", gap: 18 }}>
-              {shopItems.map((item) => (
-                <div
-                  key={item.id}
-                  style={{
-                    background: "#0f172a",
-                    border: "2px solid #38bdf8",
-                    borderRadius: 8,
-                    padding: "14px 10px",
-                    boxShadow: "0 0 8px #2563eb",
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    fontSize: 16,
-                  }}
-                >
-                  <div style={{ fontWeight: 700, color: "#fff", fontSize: 18 }}>{item.name}</div>
-                  <div style={{ color: "#cbd5e1", fontSize: 14, margin: "6px 0 10px 0" }}>
-                    {item.desc}
-                  </div>
-                  <button
-                    style={{ ...btnStyle, width: 180, fontSize: 16, margin: 0 }}
-                    disabled={playerInventory[item.id] || playerInventory._shopBought}
-                    onClick={() => {
-                      setPlayerInventory((inv) => ({
-                        ...inv,
-                        [item.id]: true,
-                        _shopBought: true,
-                      }));
-                      setShopOpen(false);
-                    }}
-                  >
-                    {playerInventory[item.id] ? "Purchased" : "Buy"}
-                  </button>
-                </div>
-              ))}
-            </div>
-
-            <button
-              style={{ ...btnStyle, width: 180, fontSize: 16, marginTop: 24 }}
-              onClick={() => setShopOpen(false)}
-            >
-              Leave Shop
-            </button>
-          </div>
-        </div>
-      )}
+    <div style={pageStyle}>
+      <ShopModal
+        open={shopOpen && menuState === "game"}
+        shopItems={shopItems}
+        playerInventory={playerInventory}
+        btnStyle={btnStyle}
+        onBuy={buyShopItem}
+        onClose={() => setShopOpen(false)}
+      />
 
       {menuState === "start" && (
-        <div style={menuBgStyle}>
-          <div style={menuOverlayStyle} />
-          <div style={menuPanelStyle}>
-            <div style={menuButtonColumnStyle}>
-              {startMenuItems.map((item, index) => {
-                const active = menuIndex === index;
-
-                function handleClick() {
-                  setMenuIndex(index);
-
-                  if (item === "START") {
-                    setDifficultyIndex(0);
-                    setMenuState("difficulty");
-                  } else if (item === "OPTIONS") {
-                    setMenuState("options");
-                  } else if (item === "EXIT") {
-                    window.location.href = "/";
-                  }
-                }
-
-                return (
-                  <button
-                    key={item}
-                    onMouseEnter={() => setMenuIndex(index)}
-                    onClick={handleClick}
-                    style={menuButtonStyle(active)}
-                  >
-                    <span style={menuDotStyle}>•</span>
-                    {item}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
+        <StartMenuScreen
+          menuBgStyle={menuBgStyle}
+          menuOverlayStyle={menuOverlayStyle}
+          menuPanelStyle={menuPanelStyle}
+          menuButtonColumnStyle={menuButtonColumnStyle}
+          menuButtonStyle={menuButtonStyle}
+          menuDotStyle={menuDotStyle}
+          startMenuItems={startMenuItems}
+          menuIndex={menuIndex}
+          setMenuIndex={setMenuIndex}
+          onStart={() => {
+            setDifficultyIndex(0);
+            setMenuState("difficulty");
+          }}
+          onOptions={() => setMenuState("options")}
+          onExit={leaveToHome}
+        />
       )}
 
       {menuState === "difficulty" && (
-        <div style={menuBgStyle}>
-          <div style={menuOverlayStyle} />
-          <div
-            style={{
-              position: "relative",
-              zIndex: 2,
-              width: "100%",
-              minHeight: "100vh",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: 20,
-            }}
-          >
-            <div
-              style={{
-                background: "rgba(2, 6, 23, 0.88)",
-                border: "2px solid rgba(255,255,255,0.18)",
-                borderRadius: 18,
-                padding: 32,
-                width: "min(520px, 92%)",
-                textAlign: "center",
-                boxShadow: "0 20px 50px rgba(0,0,0,0.45)",
-              }}
-            >
-              <div style={{ fontSize: 38, fontWeight: 900, marginBottom: 20 }}>
-                Select Difficulty
-              </div>
-
-              {difficultyItems.map((item, index) => {
-                const active = difficultyIndex === index;
-                return (
-                  <button
-                    key={item.key}
-                    onMouseEnter={() => setDifficultyIndex(index)}
-                    style={{
-                      ...btnStyle,
-                      width: "100%",
-                      marginBottom: 12,
-                      border: active
-                        ? "2px solid #facc15"
-                        : "1px solid rgba(255,255,255,0.15)",
-                      boxShadow: active ? "0 0 14px rgba(250,204,21,0.35)" : "none",
-                    }}
-                    onClick={() => {
-                      if (item.key === "back") {
-                        setMenuState("start");
-                        return;
-                      }
-                      setDifficulty(item.key);
-                      setMenuState("game");
-                      setTimeout(() => resetGame(), 0);
-                    }}
-                  >
-                    {item.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
+        <DifficultyMenuScreen
+          menuBgStyle={menuBgStyle}
+          menuOverlayStyle={menuOverlayStyle}
+          difficultyItems={difficultyItems}
+          difficultyIndex={difficultyIndex}
+          setDifficultyIndex={setDifficultyIndex}
+          btnStyle={btnStyle}
+          onBack={() => setMenuState("start")}
+          onChooseDifficulty={beginGame}
+        />
       )}
 
       {menuState === "options" && (
-        <div style={menuBgStyle}>
-          <div style={menuOverlayStyle} />
-          <div
-            style={{
-              position: "relative",
-              zIndex: 2,
-              width: "100%",
-              minHeight: "100vh",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: 20,
-            }}
-          >
-            <div
-              style={{
-                background: "rgba(2, 6, 23, 0.88)",
-                border: "2px solid rgba(255,255,255,0.18)",
-                borderRadius: 18,
-                padding: 32,
-                width: "min(560px, 92%)",
-                boxShadow: "0 20px 50px rgba(0,0,0,0.45)",
-              }}
-            >
-              <div style={{ fontSize: 38, fontWeight: 900, marginBottom: 24, textAlign: "center" }}>
-                Options
-              </div>
-
-              <div style={{ margin: "24px 0" }}>
-                <label style={{ fontSize: 20, marginBottom: 8, display: "block" }}>
-                  Audio Volume
-                </label>
-                <input
-                  type="range"
-                  min={0}
-                  max={1}
-                  step={0.01}
-                  value={audioVolume}
-                  onChange={(e) => setAudioVolume(Number(e.target.value))}
-                  style={{ width: "100%" }}
-                />
-                <div style={{ fontSize: 16, marginTop: 8 }}>
-                  {Math.round(audioVolume * 100)}%
-                </div>
-              </div>
-
-              <div style={{ margin: "24px 0" }}>
-                <label style={{ fontSize: 20, marginBottom: 8, display: "block" }}>
-                  Key Bindings
-                </label>
-                {Object.entries(keyBindings).map(([action, key]) => (
-                  <div key={action} style={{ margin: "10px 0", fontSize: 16 }}>
-                    <span style={{ fontWeight: "bold" }}>
-                      {action.charAt(0).toUpperCase() + action.slice(1)}:
-                    </span>
-                    {rebindKey === action ? (
-                      <span style={{ marginLeft: 8, color: "#38bdf8" }}>Press any key...</span>
-                    ) : (
-                      <span style={{ marginLeft: 8 }}>{key}</span>
-                    )}
-                    <button
-                      style={{ ...btnStyle, fontSize: 14, marginLeft: 12 }}
-                      onClick={() => setRebindKey(action)}
-                    >
-                      Rebind
-                    </button>
-                  </div>
-                ))}
-                {rebindKey && (
-                  <div style={{ fontSize: 14, color: "#ef4444", marginTop: 8 }}>
-                    Press a key to set binding for <b>{rebindKey}</b>
-                  </div>
-                )}
-              </div>
-
-              <button
-                style={{ ...btnStyle, width: "100%" }}
-                onClick={() => {
-                  setRebindKey(null);
-                  setMenuState("start");
-                }}
-              >
-                Back
-              </button>
-            </div>
-          </div>
-        </div>
+        <OptionsMenuScreen
+          menuBgStyle={menuBgStyle}
+          menuOverlayStyle={menuOverlayStyle}
+          audioVolume={audioVolume}
+          setAudioVolume={setAudioVolume}
+          keyBindings={keyBindings}
+          rebindKey={rebindKey}
+          setRebindKey={setRebindKey}
+          btnStyle={btnStyle}
+          onBack={() => {
+            setRebindKey(null);
+            setMenuState("start");
+          }}
+        />
       )}
 
       {menuState === "game" && (
@@ -2199,17 +2423,26 @@ export default function DungeonRollMiniGame({ onBack }) {
           >
             <div>
               <div style={styles?.logo}>Dungeon Roll</div>
-              <div style={styles?.subtitle}>NES-style browser mini-game from D20Masters.ink</div>
+              <div style={styles?.subtitle}>
+                NES-style browser mini-game from D20Masters.ink
+              </div>
             </div>
 
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <button style={{ ...btnStyle, minWidth: 150 }} onClick={onBack}>
+              <button style={{ ...btnStyle, minWidth: 150 }} onClick={leaveToHome}>
                 Back
               </button>
-              <button style={{ ...btnStyle, minWidth: 190 }} onClick={() => setMenuState("start")}>
+              <button
+                style={{ ...btnStyle, minWidth: 190 }}
+                onClick={() => {
+                  setShopOpen(false);
+                  resetCombatState();
+                  setMenuState("start");
+                }}
+              >
                 Main Menu
               </button>
-              <button style={{ ...btnStyle, minWidth: 190 }} onClick={resetGame}>
+              <button style={{ ...btnStyle, minWidth: 190 }} onClick={() => resetGame()}>
                 Restart Quest
               </button>
             </div>
@@ -2275,9 +2508,7 @@ export default function DungeonRollMiniGame({ onBack }) {
                   borderRadius: 12,
                   background: "#020617",
                   cursor:
-                    gameRef.current.gameOver || gameRef.current.victory
-                      ? "pointer"
-                      : "default",
+                    gameRef.current.gameOver || gameRef.current.victory ? "pointer" : "default",
                 }}
               />
             </div>
@@ -2329,65 +2560,14 @@ export default function DungeonRollMiniGame({ onBack }) {
                 <div>Move: arrows / WASD / rebound keys</div>
                 <div>Roll: {keyBindings.roll}</div>
                 <div>Double tap roll to skip animation</div>
+                <div>Esc closes shop</div>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {combat.open && menuState === "game" ? (
-        <div
-          style={mergeStyle(styles?.modal, {
-            position: "fixed",
-            inset: 0,
-            background: "rgba(2, 6, 23, 0.72)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 1800,
-            padding: 20,
-          })}
-        >
-          <div
-            style={{
-              background: "#0f172a",
-              border: "2px solid rgba(148,163,184,0.35)",
-              borderRadius: 16,
-              padding: 24,
-              width: "min(420px, 100%)",
-              textAlign: "center",
-              boxShadow: "0 20px 50px rgba(0,0,0,0.45)",
-            }}
-          >
-            <div style={{ fontSize: 22, fontWeight: 800, marginBottom: 12 }}>Combat</div>
-            <div style={{ color: "#cbd5e1", marginBottom: 18 }}>{combat.message}</div>
-
-            <div
-              style={{
-                fontSize: 64,
-                fontWeight: 900,
-                lineHeight: 1,
-                marginBottom: 18,
-                color: combat.rolling ? "#facc15" : "#fff",
-              }}
-            >
-              {combat.diceDisplay || "?"}
-            </div>
-
-            <div style={{ minHeight: 24, color: "#93c5fd", marginBottom: 18 }}>
-              {combat.result}
-            </div>
-
-            <button
-              style={{ ...btnStyle, fontSize: 20, minWidth: 180 }}
-              onClick={() => handleRoll(false)}
-              disabled={combat.rolling}
-            >
-              {combat.rolling ? "Rolling..." : "Roll"}
-            </button>
-          </div>
-        </div>
-      ) : null}
+      <CombatModal open={combat.open && menuState === "game"} combat={combat} btnStyle={btnStyle} onRoll={handleRoll} />
 
       <a
         href="https://buymeacoffee.com/ghostbyte"
