@@ -714,8 +714,29 @@ export default function DungeonRollMiniGame({ onBack }) {
     g.perfectClearClaimed = true;
     if (!g.bossRoomActive) g.hasKey = true;
     g.score += 50;
-    g.gold += BALANCE.goldPerfectClear;
-    pushNotice(`Perfect Clear! +50 score, +${BALANCE.goldPerfectClear} gold.`);
+
+    // 50/50: gold or a random shop item the player doesn't already own
+    const inv = inventoryRef.current;
+    const eligible = STORE_ITEMS.filter(it => it.consumable ? true : !inv[it.id]);
+    if (Math.random() < 0.5 && eligible.length > 0) {
+      const item = eligible[Math.floor(Math.random() * eligible.length)];
+      if (item.id === "healPotion") {
+        g.lives = Math.min(6, g.lives + 1);
+        pushNotice(`Floor Clear! +50 score. Bonus loot: ${item.name} (+1 life)!`);
+      } else if (item.id === "greaterHeal") {
+        g.lives = Math.min(6, g.lives + 2);
+        pushNotice(`Floor Clear! +50 score. Bonus loot: ${item.name} (+2 lives)!`);
+      } else if (item.id === "poisonFlask") {
+        g.poisonFlaskActive = true;
+        pushNotice(`Floor Clear! +50 score. Bonus loot: ${item.name}!`);
+      } else {
+        setPlayerInventory(i => ({ ...i, [item.id]: true }));
+        pushNotice(`Floor Clear! +50 score. Bonus loot: ${item.name}!`);
+      }
+    } else {
+      g.gold += BALANCE.goldPerfectClear;
+      pushNotice(`Floor Clear! +50 score, +${BALANCE.goldPerfectClear} gold.`);
+    }
   }, [pushNotice]);
 
   const enterBossRoom = useCallback((bossType) => {

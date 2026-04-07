@@ -18,7 +18,7 @@ export const BALANCE = {
   goldChestMin: 10,
   goldChestMax: 30,
   goldEventBonus: 15,
-  goldPerfectClear: 20,
+  goldPerfectClear: 30,
   goldTreasurePile: 8,
   chestSpawnChance: 35,
   trapSpawnChance: 20,
