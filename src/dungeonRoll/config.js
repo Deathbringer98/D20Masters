@@ -3,23 +3,40 @@ export const TILE = 48;
 export const FLOOR = 0;
 export const WALL = 1;
 export const MAX_LEVELS = 10;
-export const META_STORAGE_KEY = "dungeon-roll-meta-v2";
+export const META_STORAGE_KEY = "dungeon-roll-meta-v3";
 export const BALANCE = {
   minEnemyStartDistance: 5,
-  shrineSpawnChance: 25,
+  shrineSpawnChance: 22,
   eventSpawnChance: 45,
-  shieldSpawnChance: 35,
-  lootDropChance: 28,
+  shieldSpawnChance: 32,
+  lootDropChance: 30,
   chestKeyChance: 35,
   bossHp: 2,
+  goldPerKill: 5,
+  goldPerEliteKill: 12,
+  goldPerBossKill: 30,
+  goldChestMin: 10,
+  goldChestMax: 30,
+  goldEventBonus: 15,
+  goldPerfectClear: 20,
+  goldTreasurePile: 8,
+  chestSpawnChance: 35,
+  trapSpawnChance: 20,
+  treasureSpawnChance: 45,
 };
 
 export const LEVEL_MODIFIERS = [
-  { id: "normal", name: "Classic", desc: "Standard rules." },
-  { id: "haste", name: "Haste Floor", desc: "Monsters move faster." },
-  { id: "blessing", name: "Blessed Floor", desc: "Combat rolls are easier." },
-  { id: "dark", name: "Dark Floor", desc: "Visibility is reduced." },
+  { id: "normal",   name: "Classic",       desc: "Standard rules." },
+  { id: "haste",    name: "Haste Floor",   desc: "Monsters move much faster." },
+  { id: "blessing", name: "Blessed Floor", desc: "Required rolls are 2 lower." },
+  { id: "dark",     name: "Dark Floor",    desc: "Visibility is greatly reduced." },
+  { id: "goldrush", name: "Gold Rush",     desc: "Earn 50% bonus gold from kills." },
+  { id: "cursed",   name: "Cursed Floor",  desc: "All required rolls are +2 harder." },
+  { id: "elite",    name: "Elite Rush",    desc: "Every enemy spawns as an elite." },
 ];
+
+export const BOSS_TYPES = ["dragon", "gollum", "clone", "lich", "minotaur", "vampire"];
+export const ENEMY_VARIANTS = ["goblin", "orc", "skeleton", "knight"];
 
 export const EVENT_TYPES = ["teleport", "chest", "mimic", "fountain"];
 export const DEFAULT_NOTICE = "Find the key and make it to the exit.";
@@ -255,6 +272,7 @@ export function createInitialHudState() {
     shieldStatus: "No",
     streak: 0,
     score: 0,
+    gold: 0,
     modifier: "Classic",
     nextBonus: 0,
     monsterCount: 0,
@@ -272,8 +290,9 @@ export function createInitialCombatState() {
     open: false,
     message: "Roll high enough to kill the monster.",
     result: "",
-    diceDisplay: "D20",
+    diceValue: 20,
     rolling: false,
+    canReroll: false,
   };
 }
 
@@ -281,6 +300,7 @@ export function createInitialGameState() {
   return {
     currentLevel: 1,
     lives: 3,
+    gold: 0,
     hasKey: false,
     hasShield: false,
     shieldCharges: 0,
@@ -309,8 +329,15 @@ export function createInitialGameState() {
     shield: null,
     exitTile: { x: 14, y: 14 },
     enemies: [],
+    chests: [],
+    traps: [],
+    treasure: [],
     currentCombatEnemy: null,
     requiredRoll: 0,
     combatBonusUsed: 0,
+    poisonFlaskActive: false,
+    ringOfFireBonus: 0,
+    lichCurseStacks: 0,
+    rerollUsed: false,
   };
 }
