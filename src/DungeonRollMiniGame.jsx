@@ -1313,6 +1313,8 @@ export default function DungeonRollMiniGame({ onBack }) {
     color: "#fff",
     cursor: "pointer",
     fontWeight: 700,
+    boxShadow: "none",
+    filter: "none",
   });
 
   const menuBgStyle = {
@@ -1568,9 +1570,24 @@ export default function DungeonRollMiniGame({ onBack }) {
             <div style={{ margin: "20px 0" }}>
               <label style={{ fontSize: 18, marginBottom: 8, display: "block" }}>Key Bindings</label>
               {Object.entries(keyBindings).map(([action, key]) => (
-                <div key={action} style={{ margin: "8px 0", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-                  <span style={{ minWidth: 64, textTransform: "capitalize", fontWeight: 700 }}>{action}</span>
-                  <span>{rebindKey === action ? "Press any key..." : key}</span>
+                <div
+                  key={action}
+                  style={{
+                    margin: "8px 0",
+                    display: "flex",
+                    gap: 8,
+                    alignItems: "center",
+                    flexWrap: "wrap",
+                    background: "rgba(15, 23, 42, 0.55)",
+                    border: "1px solid rgba(148, 163, 184, 0.28)",
+                    borderRadius: 8,
+                    padding: "8px 10px",
+                  }}
+                >
+                  <span style={{ minWidth: 64, textTransform: "capitalize", fontWeight: 700, color: "#f8fafc" }}>
+                    {action}
+                  </span>
+                  <span style={{ color: "#e2e8f0" }}>{rebindKey === action ? "Press any key..." : key}</span>
                   <button style={{ ...btnStyle, fontSize: 13 }} onClick={() => setRebindKey(action)}>
                     Rebind
                   </button>
