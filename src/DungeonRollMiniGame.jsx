@@ -1594,7 +1594,7 @@ export default function DungeonRollMiniGame({ onBack }) {
 
     // ── Audio initialisation ────────────────────────────────────────────────
     const vol = audioVolumeRef.current;
-    menuBgmRef.current = createAudioAsset("NES TITLE THEME SONG.mp3", vol);
+    menuBgmRef.current = createAudioAsset("menu-theme.mp3", vol);
     menuBgmRef.current.loop = true;
     gameBgmRef.current  = createAudioAsset("TempleOS theme Remix.mp3", vol);
     gameBgm2Ref.current = createAudioAsset("game_music_loop.mp3", vol);
