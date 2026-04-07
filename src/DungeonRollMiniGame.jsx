@@ -222,15 +222,15 @@ export default function DungeonRollMiniGame({ onBack }) {
   useEffect(() => {
     if (!menuBgmRef.current) return;
     if (menuState === "game") {
-      menuBgmRef.current.pause();
-      if (gameBgmRef.current) {
+      if (!menuBgmRef.current.paused) menuBgmRef.current.pause();
+      if (gameBgmRef.current && gameBgmRef.current.paused) {
         gameBgmRef.current.currentTime = 0;
         gameBgmRef.current.play().catch(() => {});
       }
     } else {
-      if (gameBgmRef.current) { gameBgmRef.current.pause(); gameBgmRef.current.currentTime = 0; }
-      if (gameBgm2Ref.current) { gameBgm2Ref.current.pause(); gameBgm2Ref.current.currentTime = 0; }
-      menuBgmRef.current.play().catch(() => {});
+      if (gameBgmRef.current  && !gameBgmRef.current.paused)  { gameBgmRef.current.pause();  gameBgmRef.current.currentTime  = 0; }
+      if (gameBgm2Ref.current && !gameBgm2Ref.current.paused) { gameBgm2Ref.current.pause(); gameBgm2Ref.current.currentTime = 0; }
+      if (menuBgmRef.current.paused) menuBgmRef.current.play().catch(() => {});
     }
   }, [menuState]);
 
@@ -1592,32 +1592,6 @@ export default function DungeonRollMiniGame({ onBack }) {
     onResize();
     window.addEventListener("resize", onResize);
 
-    // ── Audio initialisation ────────────────────────────────────────────────
-    const vol = audioVolumeRef.current;
-    menuBgmRef.current = createAudioAsset("menu-theme.mp3", vol);
-    menuBgmRef.current.loop = true;
-    gameBgmRef.current  = createAudioAsset("TempleOS theme Remix.mp3", vol);
-    gameBgm2Ref.current = createAudioAsset("game_music_loop.mp3", vol);
-    // Alternate between TempleOS → game_music_loop → TempleOS → …
-    gameBgmRef.current.addEventListener("ended", () => {
-      if (gameBgm2Ref.current) { gameBgm2Ref.current.currentTime = 0; gameBgm2Ref.current.play().catch(() => {}); }
-    });
-    gameBgm2Ref.current.addEventListener("ended", () => {
-      if (gameBgmRef.current) { gameBgmRef.current.currentTime = 0; gameBgmRef.current.play().catch(() => {}); }
-    });
-    rollSfxRef.current  = createAudioAsset("dice-roll.mp3", Math.min(1, vol * 1.1));
-    killSfxRef.current  = createAudioAsset("monster-dying-effect.mp3", Math.min(1, vol * 0.9));
-    deathSfxRef.current = createAudioAsset("you-died.mp3", vol);
-
-    // Start menu BGM on first user interaction (browser autoplay policy)
-    const tryStartMenuBgm = () => {
-      if (menuBgmRef.current && menuBgmRef.current.paused) {
-        menuBgmRef.current.play().catch(() => {});
-      }
-    };
-    document.addEventListener("click",   tryStartMenuBgm, { once: true });
-    document.addEventListener("keydown", tryStartMenuBgm, { once: true });
-
     function loop() { moveEnemies(); rafRef.current = window.requestAnimationFrame(loop); }
     rafRef.current = window.requestAnimationFrame(loop);
     return () => {
@@ -1625,6 +1599,41 @@ export default function DungeonRollMiniGame({ onBack }) {
       window.cancelAnimationFrame(rafRef.current);
       window.clearInterval(rollerRef.current);
       fastRollResolverRef.current = null;
+    };
+  }, [moveEnemies]);
+
+  // ── Audio init — runs ONCE on mount only ────────────────────────────────
+  useEffect(() => {
+    const vol = audioVolumeRef.current;
+    menuBgmRef.current  = createAudioAsset("menu-theme.mp3", vol);
+    menuBgmRef.current.loop = true;
+    gameBgmRef.current  = createAudioAsset("TempleOS theme Remix.mp3", vol);
+    gameBgm2Ref.current = createAudioAsset("game_music_loop.mp3", vol);
+    // Alternate between TempleOS → game_music_loop → TempleOS → …
+    const onGame1End = () => {
+      if (gameBgm2Ref.current) { gameBgm2Ref.current.currentTime = 0; gameBgm2Ref.current.play().catch(() => {}); }
+    };
+    const onGame2End = () => {
+      if (gameBgmRef.current) { gameBgmRef.current.currentTime = 0; gameBgmRef.current.play().catch(() => {}); }
+    };
+    gameBgmRef.current.addEventListener("ended", onGame1End);
+    gameBgm2Ref.current.addEventListener("ended", onGame2End);
+    rollSfxRef.current  = createAudioAsset("dice-roll.mp3", Math.min(1, vol * 1.1));
+    killSfxRef.current  = createAudioAsset("monster-dying-effect.mp3", Math.min(1, vol * 0.9));
+    deathSfxRef.current = createAudioAsset("you-died.mp3", vol);
+    // Start menu BGM on first user interaction (browser autoplay policy)
+    const tryStartMenuBgm = () => {
+      if (menuBgmRef.current && menuBgmRef.current.paused) {
+        menuBgmRef.current.play().catch(() => {});
+      }
+    };
+    document.addEventListener("click",   tryStartMenuBgm);
+    document.addEventListener("keydown", tryStartMenuBgm);
+    return () => {
+      document.removeEventListener("click",   tryStartMenuBgm);
+      document.removeEventListener("keydown", tryStartMenuBgm);
+      gameBgmRef.current?.removeEventListener("ended", onGame1End);
+      gameBgm2Ref.current?.removeEventListener("ended", onGame2End);
       cleanupAudioAsset(menuBgmRef.current);
       cleanupAudioAsset(gameBgmRef.current);
       cleanupAudioAsset(gameBgm2Ref.current);
@@ -1632,7 +1641,7 @@ export default function DungeonRollMiniGame({ onBack }) {
       cleanupAudioAsset(killSfxRef.current);
       cleanupAudioAsset(deathSfxRef.current);
     };
-  }, [moveEnemies]);
+  }, []);
 
   useEffect(() => { draw(); }, [draw, hud, menuState]);
 
